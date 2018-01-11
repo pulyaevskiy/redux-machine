@@ -1,5 +1,5 @@
 name: redux_machine
-description: State machine powered by Redux flow
+description: State machine with Redux flow
 version: 0.0.1
 homepage: https://github.com/pulyaevskiy/redux-machine
 author: Anatoly Pulyaevskiy <anatoly.pulyaevskiy@gmail.com>

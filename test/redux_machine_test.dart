@@ -9,12 +9,17 @@ void main() {
     ReduxMachine<SimpleState> machine;
 
     setUp(() {
-      machine = new ReduxMachine<SimpleState>({
-        Actions.putCoin.name: putCoinReducer,
-        Actions.push.name: pushReducer,
-        Actions.chain.name: chainingReducer,
-        Actions.append.name: appendReducer,
-      });
+      machine = new ReduxMachine<SimpleState>();
+      machine
+        ..addReducer(Actions.putCoin, putCoinReducer)
+        ..addReducer(Actions.push, pushReducer)
+        ..addReducer(Actions.chain, chainingReducer)
+        ..addReducer(Actions.append, appendReducer)
+        ..addReducer(Actions.loop, loopReducer);
+    });
+
+    tearDown(() {
+      machine.shutdown();
     });
 
     test('isStarted', () {
@@ -43,6 +48,13 @@ void main() {
       machine.trigger(Actions.chain('chain'));
       expect(machine.state.data, 'chain-append');
     });
+
+    test('trigger infinite loop', () {
+      machine.start(new SimpleState(true));
+      expect(() {
+        machine.trigger(Actions.loop());
+      }, throwsStateError);
+    });
   });
 }
 
@@ -65,6 +77,7 @@ class Actions {
       const ActionBuilder<String>('chain');
   static const ActionBuilder<String> append =
       const ActionBuilder<String>('append');
+  static const ActionBuilder<Null> loop = const ActionBuilder<Null>('loop');
 }
 
 SimpleState putCoinReducer(
@@ -87,4 +100,10 @@ SimpleState appendReducer(
     SimpleState state, Action<String> action, MachineController controller) {
   String data = state.data + action.payload;
   return state.copyWith(isLocked: false, data: data);
+}
+
+SimpleState loopReducer(
+    SimpleState state, Action<String> action, MachineController controller) {
+  controller.become(Actions.loop());
+  return state.copyWith();
 }

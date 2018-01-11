@@ -7,10 +7,10 @@ import 'package:redux_machine/redux_machine.dart';
 /// as described here:
 /// https://en.wikipedia.org/wiki/Finite-state_machine#Example:_coin-operated_turnstile
 void main() {
-  ReduxMachine<TurnstileState> machine = new ReduxMachine<TurnstileState>({
-    Actions.putCoin.name: putCoinReducer,
-    Actions.push.name: pushReducer,
-  });
+  ReduxMachine<TurnstileState> machine = new ReduxMachine<TurnstileState>();
+  machine
+    ..addReducer(Actions.putCoin, putCoinReducer)
+    ..addReducer(Actions.push, pushReducer);
 
   machine.start(new TurnstileState(true, 0, 0));
   machine.trigger(Actions.push());
@@ -23,6 +23,7 @@ void main() {
   machine.trigger(Actions.putCoin());
   machine.trigger(Actions.push());
   machine.trigger(Actions.push());
+  machine.shutdown();
 }
 
 class TurnstileState {

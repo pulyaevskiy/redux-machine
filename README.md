@@ -2,8 +2,7 @@
 
 Writing state machines is hard, but not with this library.
 
-Inspired by some work that can be found on the Internet, this is a
-small library which allows implementing state machines powered by Redux flow.
+This is a small library which allows running state machines using Redux flow.
 
 ## Usage
 
@@ -73,10 +72,10 @@ Now get it all together:
 ```dart
 void main() {
   // Create our machine and register reducers:
-  ReduxMachine<TurnstileState> machine = new ReduxMachine<TurnstileState>({
-    Actions.putCoin.name: putCoinReducer,
-    Actions.push.name: pushReducer,
-  });
+  ReduxMachine<TurnstileState> machine = new ReduxMachine<TurnstileState>();
+  machine
+    ..addReducer(Actions.putCoin, putCoinReducer)
+    ..addReducer(Actions.push, pushReducer);
 
   // Start the machine with initial state.
   machine.start(new TurnstileState(true, 0, 0));
@@ -84,6 +83,8 @@ void main() {
   machine.trigger(Actions.push());
   machine.trigger(Actions.putCoin());
   // .. etc.
+  // Make sure to shutdown the machine in the end:
+  machine.shutdown();
 }
 ```
 
