@@ -5,67 +5,10 @@
 library redux_machine;
 
 import 'dart:async';
+import 'src/store.dart';
 
-/// Redux action for state machine.
-///
-/// Actions trigger state transitions and are handled by a corresponding reducer
-/// function.
-///
-/// While you can create an action by instantiating it directly it is recommended
-/// to use [ActionBuilder] instead, using following pattern:
-///
-///     // Declare a namespace class called `Actions` to group all Actions
-///     // together.
-///     class Actions {
-///       // Declare constant field holding ActionBuilder for each action.
-///       // Make sure to speficy distinct names.
-///       static const ActionBuilder<Null> init = const ActionBuilder<Null>('init');
-///       // If an action accepts a payload make sure to specify the payload type
-///       static const ActionBuilder<Data> doWork = const ActionBuilder<Data>('doWork');
-///     }
-///
-///     void main() {
-///       // Execute an action:
-///       machine.trigger(Actions.init()); // no payload
-///       machine.trigger(Actions.doWork(data)); // with payload
-///     }
-class Action<T> {
-  /// The name of this action.
-  final String name;
-
-  /// The payload of this action.
-  final T payload;
-
-  /// Creates new action with specified [name] and [payload].
-  ///
-  /// Instead of creating actions directly consider using [ActionBuilder].
-  Action(this.name, this.payload);
-
-  @override
-  String toString() => 'Action{$name, $payload}';
-}
-
-/// Builder for actions.
-///
-/// Builder implements [Function] interface so that each `call` of a builder
-/// returns a fresh [Action] instance. For instance:
-///
-///     const ActionBuilder<String> updateName =
-///       const ActionBuilder<String>('updateName');
-///     // `updateName` constant can now be executed as a function
-///     Action action = updateName('John'); // Action('updateName', 'John');
-///
-/// See [Action] for more details and better usage example.
-class ActionBuilder<T> implements Function {
-  /// The action name for this builder.
-  final String name;
-
-  /// Creates new action builder for an action specified by unique [name].
-  const ActionBuilder(this.name);
-
-  /// Creates new [Action] with optional [payload].
-  Action<T> call([T payload]) => new Action<T>(name, payload);
-}
+export 'src/store.dart';
+export 'src/state_machine.dart';
 
 /// State machine controller which allows triggering state transitions from
 /// within reducer functions.
@@ -76,6 +19,7 @@ class ActionBuilder<T> implements Function {
 /// controller.
 ///
 /// See [ReduxMachineReducer] for more details on reducers.
+@Deprecated('To be removed in 1.0.0. Consider switching to StateMachine.')
 class MachineController<T> {
   /// Action to execute after current action.
   Action<T> get action => _action;
@@ -98,84 +42,18 @@ class MachineController<T> {
 ///
 /// It is not allowed to schedule an action of the same type (having the same
 /// name) as current [action]. If this happens `ReduxMachine` throws [StateError].
+@Deprecated('To be removed in 1.0.0. Consider switching to StateMachine.')
 typedef S ReduxMachineReducer<S, T>(
     S state, Action<T> action, MachineController controller);
 
 /// Shutdown callback type definition for [ReduxMachine].
+@Deprecated('To be removed in 1.0.0. Consider switching to StateMachine.')
 typedef void ShutdownCallback();
 
 /// Redux powered state machine.
 ///
-/// To operate a ReduxMachine following three things are required:
-/// - a state object
-/// - action definitions
-/// - reducer functions to handle actions
-///
-/// ## Defining state
-///
-/// You are free to use any object, this library does not impose any specific
-/// interface to follow. As a guidance consider following example:
-///
-///     /// 1. Declare all fields as `final`.
-///     /// 2. Define helper `copyWith` method to use in reducers
-///     /// 3. Declare compound boolean getters for better semantics
-///     class CarState {
-///       final bool isEngineOn;
-///       final double acceleration;
-///       final double speed;
-///       CarState(this.isEngineOn, this.acceleration, this.speed);
-///
-///       bool get isMoving => speed > 0.0;
-///
-///       CarState copyWith({
-///         bool isEngineOn,
-///         double acceleration,
-///         double speed,
-///       }) {
-///         return new CarState(
-///           isEngineOn ?? this.isEngineOn,
-///           acceleration ?? this.acceleration,
-///           speed ?? this.speed,
-///         );
-///       }
-///     }
-///
-/// ## Defining actions
-///
-/// Actions must be declared using provided [Action] and [ActionBuilder] classes.
-/// See documention on [Action] class for a complete example.
-///
-/// ## Defining reducers
-///
-/// ReduxMachine reducer is any function which follows [ReduxMachineReducer]
-/// interface. For more details see [ReduxMachineReducer] documentation.
-///
-/// ## Running ReduxMachine
-///
-/// When state, actions and reducers are defined we can create and run a state
-/// machine:
-///
-///     class Actions {
-///       static const ActionBuilder<Null> engineOn = const ActionBuilder<Null>('engineOn');
-///       // more action definitions here.
-///     }
-///
-///     CarState engineOnReducer(CarState state, Action<Null> action,
-///       MachineController controller) {
-///       return state.copyWith(isEngineOn: true);
-///     }
-///
-///     void main() {
-///       ReduxMachine<CarState> machine = new ReduxMachine<CarState>();
-///       // Register all reducer functions
-///       machine..addReducer(Actions.engineOn, engineOnReducer);
-///       // Start the machine with initial state
-///       machine.start(new CarState(/* values */));
-///       // Trigger actions
-///       machine.trigger(Actions.engineOn());
-///       // Shutdown the machine when done
-///       machine.shutdown();
-///     }
+/// This class is deprecated, consider switching to [StateMachine].
+@Deprecated('To be removed in 1.0.0. Consider switching to StateMachine.')
 class ReduxMachine<S> extends Stream<S> {
   ReduxMachine({void onShutdown()}) : onShutdown = onShutdown;
 

@@ -7,38 +7,44 @@ import 'package:redux_machine/redux_machine.dart';
 /// as described here:
 /// https://en.wikipedia.org/wiki/Finite-state_machine#Example:_coin-operated_turnstile
 void main() {
-  ReduxMachine<TurnstileState> machine = new ReduxMachine<TurnstileState>();
-  machine
-    ..addReducer(Actions.putCoin, putCoinReducer)
-    ..addReducer(Actions.push, pushReducer);
+  // Create our machine and register reducers:
+  final builder = new StateMachineBuilder<Turnstile>(
+      initialState: new Turnstile(true, 0, 0));
+  builder
+    ..bind(Actions.putCoin, putCoinReducer)
+    ..bind(Actions.push, pushReducer);
+  final machine = builder.build();
 
-  machine.start(new TurnstileState(true, 0, 0));
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.putCoin());
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.putCoin());
-  machine.trigger(Actions.putCoin());
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.push());
-  machine.shutdown();
+  // Try triggering some actions
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.putCoin());
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.putCoin());
+  machine.dispatch(Actions.putCoin());
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.push());
+  // .. etc.
+  // Make sure to dispose the machine in the end:
+  machine.dispose();
 }
 
-class TurnstileState {
+class Turnstile {
   final bool isLocked;
   final int coinsCollected;
   final int visitorsPassed;
 
-  TurnstileState(this.isLocked, this.coinsCollected, this.visitorsPassed);
+  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed);
 
-  TurnstileState copyWith({
+  /// Convenience method to use in reducers.
+  Turnstile copyWith({
     bool isLocked,
     int coinsCollected,
     int visitorsPassed,
   }) {
-    return new TurnstileState(
+    return new Turnstile(
       isLocked ?? this.isLocked,
       coinsCollected ?? this.coinsCollected,
       visitorsPassed ?? this.visitorsPassed,
@@ -46,21 +52,24 @@ class TurnstileState {
   }
 }
 
-class Actions {
+abstract class Actions {
+  /// Put coin to unlock turnstile
   static const ActionBuilder<Null> putCoin =
       const ActionBuilder<Null>('putCoin');
+
+  /// Push turnstile to pass through
   static const ActionBuilder<Null> push = const ActionBuilder<Null>('push');
 }
 
-TurnstileState putCoinReducer(
-    TurnstileState state, Action action, MachineController controller) {
+Turnstile putCoinReducer(
+    Turnstile state, Action<Null> action, ActionDispatcher dispatcher) {
   int coinsCollected = state.coinsCollected + 1;
   print('Coins collected: $coinsCollected');
   return state.copyWith(isLocked: false, coinsCollected: coinsCollected);
 }
 
-TurnstileState pushReducer(
-    TurnstileState state, Action action, MachineController controller) {
+Turnstile pushReducer(
+    Turnstile state, Action<Null> action, ActionDispatcher dispatcher) {
   int visitorsPassed = state.visitorsPassed;
   if (!state.isLocked) {
     visitorsPassed++;

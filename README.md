@@ -1,10 +1,35 @@
 # redux_machine
 
-Writing state machines is hard, but not with this library.
+Originally started to provide implementation of a State Machine using
+Redux design pattern, this library now includes its own Redux Store
+which can be used without the state machine part.
 
-This is a small library which allows running state machines using Redux flow.
+Important difference from other Redux implementations is in how
+side-effects are handled. ReduxMachine's opinion on this is simple -
+side-effects are not allowed.
 
-## Usage
+Practical implications of this rule are:
+
+- reducers must be pure functions (no asynchronous logic)
+- no middleware (in the traditional form), middleware-like functionality
+  is still allowed, as long as there is no side-effects.
+
+Why? One of the main benefits of Redux pattern is  how it reduces
+(no pun intended) cognitive load when modeling larger applications.
+Side-effects effectively remove this benefit.
+
+ReduxMachine tries to avoid traditional middleware approach and
+keep side-effects out of the main action-reducer-state flow.
+It is not a new work and some inspiration has been taken from a few
+different online resources like [this][goshakkk] and [this][ward].
+
+[goshakkk]: https://goshakkk.name/redux-side-effect-approaches/
+[ward]: https://medium.com/javascript-and-opinions/redux-side-effects-and-you-66f2e0842fc3
+
+Provided APIs for `StateMachine` and `Store` classes are also designed
+to allow better static type analysis so you could catch errors earlier.
+
+## StateMachine Usage
 
 Redux requires three things: state, actions and reducers.
 
@@ -12,20 +37,20 @@ We start by defining our state object. Here is an example of a coin-operated
 turnstile ([from Wikipedia][turnstile]):
 
 ```dart
-class TurnstileState {
+class Turnstile {
   final bool isLocked;
   final int coinsCollected;
   final int visitorsPassed;
 
-  TurnstileState(this.isLocked, this.coinsCollected, this.visitorsPassed);
+  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed);
 
   /// Convenience method to use in reducers.
-  TurnstileState copyWith({
+  Turnstile copyWith({
     bool isLocked,
     int coinsCollected,
     int visitorsPassed,
   }) {
-    return new TurnstileState(
+    return new Turnstile(
       isLocked ?? this.isLocked,
       coinsCollected ?? this.coinsCollected,
       visitorsPassed ?? this.visitorsPassed,
@@ -37,7 +62,7 @@ class TurnstileState {
 Next, actions:
 
 ```dart
-class Actions {
+abstract class Actions {
   /// Put coin to unlock turnstile
   static const ActionBuilder<Null> putCoin =
       const ActionBuilder<Null>('putCoin');
@@ -49,15 +74,15 @@ class Actions {
 And reducers:
 
 ```dart
-TurnstileState putCoinReducer(
-    TurnstileState state, Action<Null> action, MachineController controller) {
+Turnstile putCoinReducer(
+    Turnstile state, Action<Null> action, ActionDispatcher dispatcher) {
   int coinsCollected = state.coinsCollected + 1;
   print('Coins collected: $coinsCollected');
   return state.copyWith(isLocked: false, coinsCollected: coinsCollected);
 }
 
-TurnstileState pushReducer(
-    TurnstileState state, Action<Null> action, MachineController controller) {
+Turnstile pushReducer(
+    Turnstile state, Action<Null> action, ActionDispatcher dispatcher) {
   int visitorsPassed = state.visitorsPassed;
   if (!state.isLocked) {
     visitorsPassed++;
@@ -72,42 +97,89 @@ Now get it all together:
 ```dart
 void main() {
   // Create our machine and register reducers:
-  ReduxMachine<TurnstileState> machine = new ReduxMachine<TurnstileState>();
-  machine
-    ..addReducer(Actions.putCoin, putCoinReducer)
-    ..addReducer(Actions.push, pushReducer);
+  final builder = new StateMachineBuilder<Turnstile>(
+    initialState: new Turnstile(true, 0, 0));
+  builder
+    ..bind(Actions.putCoin, putCoinReducer)
+    ..bind(Actions.push, pushReducer);
+  final machine = builder.build();
 
-  // Start the machine with initial state.
-  machine.start(new TurnstileState(true, 0, 0));
   // Try triggering some actions
-  machine.trigger(Actions.push());
-  machine.trigger(Actions.putCoin());
+  machine.dispatch(Actions.push());
+  machine.dispatch(Actions.putCoin());
   // .. etc.
-  // Make sure to shutdown the machine in the end:
-  machine.shutdown();
+  // Make sure to dispose the machine in the end:
+  machine.dispose();
 }
 ```
 
 ### Chaining actions
 
 Sometimes it is useful to trigger another action from inside current reducer.
-It is possible via `MachineController` argument passed to each reducer function.
-Simply call `controller.become(yourNextAction(payload));` before returning
+It is possible via `ActionDispatcher` argument passed to each reducer function.
+Simply invoke it `dispatcher(yourNextAction(payload));` before returning
 updated state, e.g.:
 
 ```dart
 State exampleReducer(
-    State state, Action<Null> action, MachineController controller) {
+    State state, Action<Null> action, ActionDispatcher dispatcher) {
   // do work here
   // ...
 
   // State machine will call reducer for `otherAction` with the state object 
   // returned from this reducer.
-  controller.become(Actions.otherAction());
+  dispatcher(Actions.otherAction());
 
   return state.copyWith(exampleField: 'value');
 }
 ```
+
+## Middleware example 1: logging
+
+`ReduxMachine` and `Store` classes expose `events` stream which
+contains all dispatched actions and their results. So logging middleware
+becomes a simple stream subscription. Printing to stdout:
+
+```dart
+final Store<MyState> store = getStore();
+// Print all events, including errors and don't cancel subscription
+// if error occurred.
+store.events.listen(print, onError: print, cancelOnError: false);
+```
+
+## Middleware example 2: error reporting
+
+Similarly to logging example we just need to report only errors:
+
+```dart
+final Store<MyState> store = getStore();
+// No-op for normal store events, print error events and don't cancel
+// subscription if error occurred.
+store.events.listen(() {}, onError: print, cancelOnError: false);
+```
+
+## Middleware example 3: making HTTP request
+
+```dart
+final Store<MyState> store = getStore();
+// Note that async is allowed in event listeners
+store.eventsWhere(Actions.fetchUser).listen((event) async {
+  try {
+    int userId = event.newState.fetchingUserId;
+    final user = await fetchUser(userId);
+    store.dispatch(Actions.userFetched(user));
+  } catch (error) {
+    store.dispatch(Actions.userFetchFailed(error));
+  }
+});
+
+// Assuming there is a reducer which simply sets
+// store.state.fetchingUserId = action.payload; // 123 in this case
+store.dispatch(Actions.fetchUser(123));
+```
+
+Obviously the above is not really a **middle**ware, but it's main
+purpose is to move side-effects outside of the state store.
 
 ## Features and bugs
 
