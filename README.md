@@ -6,7 +6,8 @@ which can be used without the state machine part.
 
 Important difference from other Redux implementations is in how
 side-effects are handled. ReduxMachine's opinion on this is simple -
-side-effects are not allowed.
+side-effects are not allowed in the action dispatch flow
+(dispatch-reduce-updateState).
 
 Practical implications of this rule are:
 
@@ -30,6 +31,8 @@ Provided APIs for `StateMachine` and `Store` classes are also designed
 to allow better static type analysis so you could catch errors earlier.
 
 ## StateMachine Usage
+
+> TL;DR see full source code of this example in the `example/` folder.
 
 Redux requires three things: state, actions and reducers.
 
