@@ -156,12 +156,12 @@ class StateMachine<S> implements Store<S> {
   S get state => _store.state.appState;
 
   @override
-  Stream<StoreEvent<S>> get events =>
+  Stream<StoreEvent<S, dynamic>> get events =>
       _store.events.map((event) => new StoreEvent(
           event.oldState.appState, event.newState.appState, event.action));
 
   @override
-  Stream<StoreEvent<S>> eventsWhere<T>(ActionBuilder<T> action) {
+  Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
     return events.where((event) => event.action.name == action.name);
   }

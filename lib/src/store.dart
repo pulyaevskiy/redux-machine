@@ -90,7 +90,7 @@ class Store<S> {
         _reducers = reducers;
 
   final Map<String, Reducer<S, dynamic>> _reducers;
-  final StreamController<StoreEvent<S>> _controller;
+  final StreamController<StoreEvent<S, dynamic>> _controller;
 
   bool _disposed = false;
 
@@ -101,10 +101,10 @@ class Store<S> {
   /// Stream of all events occurred in this store.
   ///
   /// For only state changes see [changes] stream.
-  Stream<StoreEvent<S>> get events => _controller.stream;
+  Stream<StoreEvent<S, dynamic>> get events => _controller.stream;
 
   /// Stream of all events triggered by action type of [action].
-  Stream<StoreEvent<S>> eventsWhere<T>(ActionBuilder<T> action) {
+  Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
     return events.where((event) => event.action.name == action.name);
   }
@@ -146,10 +146,10 @@ class Store<S> {
 }
 
 /// Event triggered by an [action] in a Redux [Store].
-class StoreEvent<S> {
+class StoreEvent<S, T> {
   final S oldState;
   final S newState;
-  final Action action;
+  final Action<T> action;
 
   StoreEvent(this.oldState, this.newState, this.action);
 
@@ -158,11 +158,11 @@ class StoreEvent<S> {
 }
 
 /// Error event triggered by an [action] in a Redux [Store].
-class StoreError<S> extends Error {
+class StoreError<S, T> extends Error {
   final dynamic error;
   final S oldState;
   final S newState;
-  final Action action;
+  final Action<T> action;
 
   StoreError(this.error, this.oldState, this.newState, this.action);
 

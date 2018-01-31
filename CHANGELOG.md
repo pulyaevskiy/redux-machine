@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Added type argument to `StoreEvent` for the action payload type for
+  better static analysis.
+
 ## 0.1.0
 
 - Deprecated `ReduxMachine` implementation in favor of new
