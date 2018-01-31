@@ -157,9 +157,10 @@ class StateMachine<S> implements Store<S> {
 
   @override
   Stream<StoreEvent<S, dynamic>> get events =>
-      _store.events.map((event) => new StoreEvent(
-          event.oldState.appState, event.newState.appState, event.action));
+      _store.events.map((event) => new StoreEvent(this, event.oldState.appState,
+          event.newState.appState, event.action));
 
+  // TODO: reduce code duplication by extracting all stream methods to a StoreBase class or mixin
   @override
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
@@ -168,6 +169,10 @@ class StateMachine<S> implements Store<S> {
 
   @override
   Stream<S> get changes => events.map((event) => event.newState).distinct();
+
+  @override
+  Stream<T> changesFor<T>(T subState(S state)) =>
+      changes.map(subState).distinct();
 
   @override
   void dispatch<T>(Action<T> action) {

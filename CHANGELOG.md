@@ -4,6 +4,10 @@
 
 - Added type argument to `StoreEvent` for the action payload type for
   better static analysis.
+- Added `store` field to `StoreEvent` which contains reference to
+  the state `Store` (or `StateMachine`) which produced that event.
+- Added `Store.changesFor` to allow listening for changes on a part
+  of the application state.
 
 ## 0.1.0
 

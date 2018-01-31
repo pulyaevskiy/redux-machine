@@ -115,6 +115,25 @@ class Store<S> {
   /// compare current and previous states.
   Stream<S> get changes => events.map((event) => event.newState).distinct();
 
+  /// Stream of all changes for a part of application's state.
+  ///
+  /// [subState] function must return specific sub-state object from the
+  /// application [state]. The sub-state class is responsible for implementing
+  /// equality operator `==` as it is used to compare current and previous
+  /// values of this type. Example:
+  ///
+  ///     enum HeadlampsMode { off, on, highBeams }
+  ///     class Car {
+  ///       HeadlampsMode headlamps;
+  ///     }
+  ///
+  ///     Store<Car> store = getStore();
+  ///     store.changesFor((Car state) => state.headlamps).listen((mode) {
+  ///       print('Headlamps mode changed to $mode');
+  ///     });
+  Stream<T> changesFor<T>(T subState(S state)) =>
+      changes.map(subState).distinct();
+
   /// Dispatches provided [action].
   void dispatch<T>(Action<T> action) {
     assert(!_disposed,
@@ -132,7 +151,7 @@ class Store<S> {
       if (error != null) {
         _controller.addError(new StoreError(error, oldState, _state, action));
       } else
-        _controller.add(new StoreEvent(oldState, _state, action));
+        _controller.add(new StoreEvent(this, oldState, _state, action));
     }
   }
 
@@ -147,11 +166,19 @@ class Store<S> {
 
 /// Event triggered by an [action] in a Redux [Store].
 class StoreEvent<S, T> {
+  /// The state [Store] which produced this event.
+  final Store<S> store;
+
+  /// Application state before this event.
   final S oldState;
+
+  /// Application state after this event.
   final S newState;
+
+  /// The action which triggered this event.
   final Action<T> action;
 
-  StoreEvent(this.oldState, this.newState, this.action);
+  StoreEvent(this.store, this.oldState, this.newState, this.action);
 
   @override
   String toString() => "StoreEvent{$action, $oldState, $newState}";

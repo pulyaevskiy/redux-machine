@@ -15,25 +15,26 @@ final Matcher throwsStoreError = throwsA(const _StoreError());
 
 void main() {
   group('Store', () {
-    Store<SimpleState> store;
+    Store<Car> store;
 
     setUp(() {
-      final builder =
-          new StoreBuilder<SimpleState>(initialState: new SimpleState(false));
+      final builder = new StoreBuilder<Car>(
+          initialState: new Car(false, HeadlampsMode.off));
       builder
-        ..bind(Actions.empty, emptyReducer)
+        ..bind(Actions.turnEngineOn, turnEngineOn)
+        ..bind(Actions.switchHeadlamps, switchHeadlampsTo)
         ..bind(Actions.error, errorReducer);
       store = builder.build();
     });
 
     test('dispatch', () {
-      store.dispatch(Actions.empty(true));
-      expect(store.state.isEmpty, true);
+      store.dispatch(Actions.turnEngineOn(true));
+      expect(store.state.isEngineOn, true);
     });
 
     test('events', () {
       var events = store.events.toList();
-      store.dispatch(Actions.empty(true));
+      store.dispatch(Actions.turnEngineOn(true));
       store.dispatch(Actions.notBound());
       store.dispose();
       expect(events, completion(hasLength(2)));
@@ -41,7 +42,7 @@ void main() {
 
     test('eventsWhere', () {
       var events = store.eventsWhere(Actions.notBound).toList();
-      store.dispatch(Actions.empty(true));
+      store.dispatch(Actions.turnEngineOn(true));
       store.dispatch(Actions.notBound());
       store.dispose();
       expect(events, completion(hasLength(1)));
@@ -49,10 +50,22 @@ void main() {
 
     test('changes', () {
       var events = store.changes.toList();
-      store.dispatch(Actions.empty(true));
+      store.dispatch(Actions.turnEngineOn(true));
       store.dispatch(Actions.notBound());
+      store.dispatch(Actions.switchHeadlamps(HeadlampsMode.on));
       store.dispose();
-      expect(events, completion(hasLength(1)));
+      expect(events, completion(hasLength(2)));
+    });
+
+    test('changesFor', () {
+      var events = store.changesFor((car) => car.headlamps).toList();
+      store.dispatch(Actions.turnEngineOn(true));
+      store.dispatch(Actions.switchHeadlamps(HeadlampsMode.on));
+      store.dispatch(Actions.switchHeadlamps(HeadlampsMode.on));
+      store.dispatch(Actions.switchHeadlamps(HeadlampsMode.highBeams));
+      store.dispatch(Actions.switchHeadlamps(HeadlampsMode.off));
+      store.dispose();
+      expect(events, completion(hasLength(4)));
     });
 
     test('errors', () {
@@ -64,22 +77,35 @@ void main() {
 }
 
 class Actions {
-  static const ActionBuilder<bool> empty = const ActionBuilder<bool>('empty');
+  static const ActionBuilder<bool> turnEngineOn =
+      const ActionBuilder<bool>('turnEngineOn');
+  static const ActionBuilder<HeadlampsMode> switchHeadlamps =
+      const ActionBuilder<HeadlampsMode>('switchHeadlamps');
   static const ActionBuilder<Null> error = const ActionBuilder<Null>('error');
   static const ActionBuilder<Null> notBound =
       const ActionBuilder<Null>('notBound');
 }
 
-class SimpleState {
-  final bool isEmpty;
+enum HeadlampsMode { off, on, highBeams }
 
-  SimpleState(this.isEmpty);
+class Car {
+  final bool isEngineOn;
+  final HeadlampsMode headlamps;
+
+  Car(this.isEngineOn, this.headlamps);
+
+  @override
+  String toString() => '$Car{isEngineOn: $isEngineOn, headlamps: $headlamps}';
 }
 
-SimpleState emptyReducer(SimpleState state, Action<bool> action) {
-  return new SimpleState(action.payload);
+Car turnEngineOn(Car state, Action<bool> action) {
+  return new Car(action.payload, state.headlamps);
 }
 
-SimpleState errorReducer(SimpleState state, Action<bool> action) {
+Car switchHeadlampsTo(Car state, Action<HeadlampsMode> action) {
+  return new Car(state.isEngineOn, action.payload);
+}
+
+Car errorReducer(Car state, Action<bool> action) {
   throw new StateError('Something bad happened');
 }
