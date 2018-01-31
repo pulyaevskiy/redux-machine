@@ -1,5 +1,7 @@
 # redux_machine
 
+[![Build Status](https://travis-ci.org/pulyaevskiy/redux-machine.svg?branch=master)](https://travis-ci.org/pulyaevskiy/redux-machine)
+
 Originally started to provide implementation of a State Machine using
 Redux design pattern, this library now includes its own Redux Store
 which can be used without the state machine part.
