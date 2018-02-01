@@ -1,6 +1,6 @@
 name: redux_machine
 description: Redux State Machine and Store with no side-effects.
-version: 0.1.1
+version: 0.1.2
 homepage: https://github.com/pulyaevskiy/redux-machine
 author: Anatoly Pulyaevskiy <anatoly.pulyaevskiy@gmail.com>
 

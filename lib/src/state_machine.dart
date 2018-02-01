@@ -1,3 +1,6 @@
+// Copyright (c) 2018, Anatoly Pulyaevskiy. All rights reserved. Use of this source code
+// is governed by a BSD-style license that can be found in the LICENSE file.
+
 import 'dart:async';
 
 import 'store.dart';
@@ -45,9 +48,17 @@ typedef MachineReducer<S, T> = S Function(
 
 /// Builder for [StateMachine]s.
 class StateMachineBuilder<S> {
-  StateMachineBuilder({S initialState})
+  StateMachineBuilder({S initialState, StoreErrorHandler<S, dynamic> onError})
       : _builder = new StoreBuilder<MachineState<S>>(
-            initialState: new MachineState(initialState, null));
+            initialState: new MachineState(initialState, null),
+            onError: (MachineState<S> state, Action action, error) {
+              var handler = onError ?? defaultStoreErrorHandler;
+              handler(state.appState, action, error);
+              // If we are still here then user-provided handler decided to
+              // not throw the error. However we rely on this in the dispatch
+              // method so...
+              throw error;
+            });
 
   final StoreBuilder<MachineState<S>> _builder;
 
@@ -184,6 +195,10 @@ class StateMachine<S> implements Store<S> {
             'of the same type: ${currentAction.name}');
       }
       currentAction = _store.state.nextAction;
+      // Our onError handler always throws so if an error occurred during
+      // dispatch we are guaranteed to exit this while loop.
+      // One downside here is that current state might still have
+      // `nextAction` set to the action which failed with error.
     }
   }
 

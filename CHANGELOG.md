@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Added `onError` argument to `StoreBuilder` and `StateMachineBuilder`.
+- Fixed: don't swallow errors in action dispatch flow.
+- Removed `StoreError` class.
+
 ## 0.1.1
 
 - Added type argument to `StoreEvent` for the action payload type for

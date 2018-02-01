@@ -147,21 +147,37 @@ becomes a simple stream subscription. Printing to stdout:
 
 ```dart
 final Store<MyState> store = getStore();
-// Print all events, including errors and don't cancel subscription
-// if error occurred.
-store.events.listen(print, onError: print, cancelOnError: false);
+// Print all events to stdout:
+store.events.listen(print);
 ```
 
 ## Middleware example 2: error reporting
 
-Similarly to logging example we just need to report only errors:
+You can provide error handler to `StoreBuilder`:
 
 ```dart
-final Store<MyState> store = getStore();
-// No-op for normal store events, print error events and don't cancel
-// subscription if error occurred.
-store.events.listen(() {}, onError: print, cancelOnError: false);
+final StoreBuilder<MyState> builder = new StoreBuilder(
+  onError: errorHandler);
+
+// Example error handler
+void errorHandler(MyState state, Action action, error) {
+  // Avoid having async logic in here.
+  errorsSync.add(error);
+  // Throw the error in the end.
+  throw error;
+}
 ```
+
+The `onError` handler is executed as part of the action dispatch
+flow therefore it must be pure. Instead of doing any async logic
+inside the handler consider leveraging an `EventSink` to collect
+errors and publish asynchronously.
+
+If `onError` is omitted it defaults to a handler which simply throws
+all errors.
+
+Actions which resulted in an error are not published to the `events`
+stream.
 
 ## Middleware example 3: making HTTP request
 
@@ -182,9 +198,6 @@ store.eventsWhere(Actions.fetchUser).listen((event) async {
 // store.state.fetchingUserId = action.payload; // 123 in this case
 store.dispatch(Actions.fetchUser(123));
 ```
-
-Obviously the above is not really a **middle**ware, but it's main
-purpose is to move side-effects outside of the state store.
 
 ## Features and bugs
 

@@ -1,25 +1,23 @@
-// Copyright (c) 2017, Anatoly Pulyaevskiy. All rights reserved. Use of this source code
+// Copyright (c) 2018, Anatoly Pulyaevskiy. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
 import 'package:redux_machine/redux_machine.dart';
 import 'package:test/test.dart';
 
-const Matcher isStoreError = const _StoreError();
-
-class _StoreError extends TypeMatcher {
-  const _StoreError() : super("StoreError");
-  bool matches(item, Map matchState) => item is StoreError;
-}
-
-final Matcher throwsStoreError = throwsA(const _StoreError());
-
 void main() {
   group('Store', () {
     Store<Car> store;
+    String errorMessage;
 
     setUp(() {
+      errorMessage = null;
       final builder = new StoreBuilder<Car>(
-          initialState: new Car(false, HeadlampsMode.off));
+        initialState: new Car(false, HeadlampsMode.off),
+        onError: (state, action, error) {
+          errorMessage = error.toString();
+          throw error;
+        }
+      );
       builder
         ..bind(Actions.turnEngineOn, turnEngineOn)
         ..bind(Actions.switchHeadlamps, switchHeadlampsTo)
@@ -68,10 +66,18 @@ void main() {
       expect(events, completion(hasLength(4)));
     });
 
-    test('errors', () {
-      var events = store.events.toList();
-      store.dispatch(Actions.error());
-      expect(events, throwsStoreError);
+    test('default errors', () {
+      expect(() {
+        store.dispatch(Actions.error());
+      }, throwsStateError);
+    });
+
+    test('onError handler', () {
+      // TODO: make this test better
+      expect(() {
+        store.dispatch(Actions.error());
+      }, throwsStateError);
+      expect(errorMessage, 'Bad state: Something bad happened');
     });
   });
 }

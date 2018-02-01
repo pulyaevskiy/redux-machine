@@ -1,3 +1,6 @@
+// Copyright (c) 2018, Anatoly Pulyaevskiy. All rights reserved. Use of this source code
+// is governed by a BSD-style license that can be found in the LICENSE file.
+
 import 'dart:async';
 
 /// Redux action for state [Store].
@@ -64,10 +67,23 @@ class ActionBuilder<T> implements Function {
 /// Signature for Redux reducer functions.
 typedef Reducer<S, T> = S Function(S state, Action<T> action);
 
+typedef StoreErrorHandler<S, T> = void Function(
+    S state, Action<T> action, dynamic error);
+
+/// Default error handler for state [Store].
+///
+/// This handler simply throws the [error] as unhandled.
+void defaultStoreErrorHandler<S, T>(S state, Action<T> action, error) {
+  throw error;
+}
+
 /// Builder for Redux state [Store].
 class StoreBuilder<S> {
-  StoreBuilder({S initialState}) : _initialState = initialState;
+  StoreBuilder({S initialState, StoreErrorHandler<S, dynamic> onError})
+      : _initialState = initialState,
+        _onError = onError;
   S _initialState;
+  StoreErrorHandler<S, dynamic> _onError;
 
   final Map<String, Reducer<S, dynamic>> _reducers = {};
 
@@ -76,7 +92,7 @@ class StoreBuilder<S> {
     _reducers[action.name] = reducer;
   }
 
-  Store<S> build() => new Store._(_initialState, _reducers);
+  Store<S> build() => new Store._(_initialState, _reducers, _onError);
 }
 
 /// Redux State Store.
@@ -84,13 +100,16 @@ class StoreBuilder<S> {
 /// To create a new [Store] instance use [StoreBuilder].
 class Store<S> {
   /// Creates a new [Store].
-  Store._(S initialState, Map<String, Reducer<S, dynamic>> reducers)
+  Store._(S initialState, Map<String, Reducer<S, dynamic>> reducers,
+      StoreErrorHandler<S, dynamic> onError)
       : _controller = new StreamController.broadcast(),
         _state = initialState,
-        _reducers = reducers;
+        _reducers = reducers,
+        _onError = onError ?? defaultStoreErrorHandler;
 
   final Map<String, Reducer<S, dynamic>> _reducers;
   final StreamController<StoreEvent<S, dynamic>> _controller;
+  final StoreErrorHandler<S, dynamic> _onError;
 
   bool _disposed = false;
 
@@ -139,19 +158,14 @@ class Store<S> {
     assert(!_disposed,
         'Dispatching actions is not allowed in disposed state Store.');
     final S oldState = _state;
-    dynamic error;
     try {
       final reducer = _reducers[action.name];
       if (reducer != null) {
         _state = reducer(oldState, action);
       }
+      _controller.add(new StoreEvent(this, oldState, _state, action));
     } catch (err) {
-      error = err;
-    } finally {
-      if (error != null) {
-        _controller.addError(new StoreError(error, oldState, _state, action));
-      } else
-        _controller.add(new StoreEvent(this, oldState, _state, action));
+      _onError(_state, action, err);
     }
   }
 
@@ -182,17 +196,4 @@ class StoreEvent<S, T> {
 
   @override
   String toString() => "StoreEvent{$action, $oldState, $newState}";
-}
-
-/// Error event triggered by an [action] in a Redux [Store].
-class StoreError<S, T> extends Error {
-  final dynamic error;
-  final S oldState;
-  final S newState;
-  final Action<T> action;
-
-  StoreError(this.error, this.oldState, this.newState, this.action);
-
-  @override
-  String toString() => "StoreError{$error, $action, $oldState, $newState}";
 }
