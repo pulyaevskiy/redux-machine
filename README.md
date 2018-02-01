@@ -153,7 +153,9 @@ store.events.listen(print);
 
 ## Middleware example 2: error reporting
 
-You can provide error handler to `StoreBuilder`:
+Since action dispatch flow is side-effect free handling exceptions in
+reducers is straightforward. To track unhandled errors you can set the
+`onError` handler on `StoreBuilder` (and `StateMachineBuilder`):
 
 ```dart
 final StoreBuilder<MyState> builder = new StoreBuilder(
