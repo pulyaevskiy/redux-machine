@@ -12,12 +12,11 @@ void main() {
     setUp(() {
       errorMessage = null;
       final builder = new StoreBuilder<Car>(
-        initialState: new Car(false, HeadlampsMode.off),
-        onError: (state, action, error) {
-          errorMessage = error.toString();
-          throw error;
-        }
-      );
+          initialState: new Car(false, HeadlampsMode.off),
+          onError: (state, action, error) {
+            errorMessage = error.toString();
+            throw error;
+          });
       builder
         ..bind(Actions.turnEngineOn, turnEngineOn)
         ..bind(Actions.switchHeadlamps, switchHeadlampsTo)
