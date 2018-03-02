@@ -125,7 +125,7 @@ class Store<S> {
   /// Stream of all events triggered by action type of [action].
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
-    return events.where((event) => event.action.name == action.name);
+    return events.where((event) => event.action.name == action.name).retype();
   }
 
   /// Stream of all state changes occurred in this store.
@@ -163,7 +163,7 @@ class Store<S> {
       if (reducer != null) {
         _state = reducer(oldState, action);
       }
-      _controller.add(new StoreEvent(this, oldState, _state, action));
+      _controller.add(new StoreEvent<S, T>(this, oldState, _state, action));
     } catch (err) {
       _onError(_state, action, err);
     }

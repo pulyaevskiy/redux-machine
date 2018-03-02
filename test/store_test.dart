@@ -86,9 +86,9 @@ class Actions {
       const ActionBuilder<bool>('turnEngineOn');
   static const ActionBuilder<HeadlampsMode> switchHeadlamps =
       const ActionBuilder<HeadlampsMode>('switchHeadlamps');
-  static const ActionBuilder<Null> error = const ActionBuilder<Null>('error');
-  static const ActionBuilder<Null> notBound =
-      const ActionBuilder<Null>('notBound');
+  static const ActionBuilder<void> error = const ActionBuilder<void>('error');
+  static const ActionBuilder<void> notBound =
+      const ActionBuilder<void>('notBound');
 }
 
 enum HeadlampsMode { off, on, highBeams }
@@ -111,6 +111,6 @@ Car switchHeadlampsTo(Car state, Action<HeadlampsMode> action) {
   return new Car(state.isEngineOn, action.payload);
 }
 
-Car errorReducer(Car state, Action<bool> action) {
+Car errorReducer(Car state, Action<void> action) {
   throw new StateError('Something bad happened');
 }

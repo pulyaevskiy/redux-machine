@@ -1,4 +1,7 @@
-# Changelog
+## 1.0.0-dev.1.0
+
+- Breaking: Removed deprecated `ReduxMachine` and related classes.
+- Fixed: strong mode issues with Dart 2.
 
 ## 0.1.2
 
