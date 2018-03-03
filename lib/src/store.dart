@@ -85,7 +85,7 @@ class StoreBuilder<S> {
   S _initialState;
   StoreErrorHandler<S, dynamic> _onError;
 
-  final Map<String, Reducer<S, dynamic>> _reducers = {};
+  final Map<String, dynamic> _reducers = {};
 
   /// Binds [reducer] to specified [action] type.
   void bind<T>(ActionBuilder<T> action, Reducer<S, T> reducer) {
@@ -100,14 +100,14 @@ class StoreBuilder<S> {
 /// To create a new [Store] instance use [StoreBuilder].
 class Store<S> {
   /// Creates a new [Store].
-  Store._(S initialState, Map<String, Reducer<S, dynamic>> reducers,
+  Store._(S initialState, Map<String, dynamic> reducers,
       StoreErrorHandler<S, dynamic> onError)
       : _controller = new StreamController.broadcast(),
         _state = initialState,
         _reducers = reducers,
         _onError = onError ?? defaultStoreErrorHandler;
 
-  final Map<String, Reducer<S, dynamic>> _reducers;
+  final Map<String, dynamic> _reducers;
   final StreamController<StoreEvent<S, dynamic>> _controller;
   final StoreErrorHandler<S, dynamic> _onError;
 
@@ -159,7 +159,7 @@ class Store<S> {
         'Dispatching actions is not allowed in disposed state Store.');
     final S oldState = _state;
     try {
-      final reducer = _reducers[action.name];
+      final Reducer<S, T> reducer = _reducers[action.name];
       if (reducer != null) {
         _state = reducer(oldState, action);
       }
