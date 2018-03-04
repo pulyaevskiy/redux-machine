@@ -125,7 +125,7 @@ class Store<S> {
   /// Stream of all events triggered by action type of [action].
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
-    return events.where((event) => event.action.name == action.name).retype();
+    return events.where((event) => event.action.name == action.name).cast();
   }
 
   /// Stream of all state changes occurred in this store.

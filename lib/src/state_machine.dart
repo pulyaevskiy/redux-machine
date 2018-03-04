@@ -68,7 +68,7 @@ class StateMachineBuilder<S> {
       var dispatcher = new ActionDispatcher._();
       final newAppState = reducer(state.appState, action, dispatcher);
       dispatcher.dispose();
-      return new MachineState(newAppState, dispatcher.action);
+      return new MachineState<S>(newAppState, dispatcher.action);
     };
     _builder.bind(action, storeReducer);
   }
@@ -167,15 +167,18 @@ class StateMachine<S> implements Store<S> {
   S get state => _store.state.appState;
 
   @override
-  Stream<StoreEvent<S, dynamic>> get events =>
-      _store.events.map((event) => new StoreEvent<S, dynamic>(this,
-          event.oldState.appState, event.newState.appState, event.action));
+  Stream<StoreEvent<S, dynamic>> get events => _store.events.map(_mapEvent);
+
+  StoreEvent<S, T> _mapEvent<T>(StoreEvent<MachineState<S>, T> event) {
+    return new StoreEvent<S, T>(
+        this, event.oldState.appState, event.newState.appState, event.action);
+  }
 
   // TODO: reduce code duplication by extracting all stream methods to a StoreBase class or mixin
   @override
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
-    return events.where((event) => event.action.name == action.name).retype();
+    return events.where((event) => event.action.name == action.name).cast();
   }
 
   @override
