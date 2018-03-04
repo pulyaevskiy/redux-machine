@@ -168,14 +168,14 @@ class StateMachine<S> implements Store<S> {
 
   @override
   Stream<StoreEvent<S, dynamic>> get events =>
-      _store.events.map((event) => new StoreEvent(this, event.oldState.appState,
-          event.newState.appState, event.action));
+      _store.events.map((event) => new StoreEvent<S, dynamic>(this,
+          event.oldState.appState, event.newState.appState, event.action));
 
   // TODO: reduce code duplication by extracting all stream methods to a StoreBase class or mixin
   @override
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
-    return events.where((event) => event.action.name == action.name);
+    return events.where((event) => event.action.name == action.name).retype();
   }
 
   @override
@@ -191,7 +191,7 @@ class StateMachine<S> implements Store<S> {
     while (currentAction != null) {
       _store.dispatch(currentAction);
       if (currentAction.name == _store.state.nextAction?.name) {
-        throw new StateError('Machine action attempts to trigger action '
+        throw new StateError('StateMachine action attempts to trigger action '
             'of the same type: ${currentAction.name}');
       }
       currentAction = _store.state.nextAction;
