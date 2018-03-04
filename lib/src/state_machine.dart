@@ -17,7 +17,7 @@ class MachineState<S> {
 }
 
 /// Action dispatcher which is passed to [MachineReducer] functions.
-class ActionDispatcher<T> implements Function {
+class ActionDispatcher<T> {
   ActionDispatcher._();
 
   Action<T> get action => _action;
@@ -174,7 +174,6 @@ class StateMachine<S> implements Store<S> {
         this, event.oldState.appState, event.newState.appState, event.action);
   }
 
-  // TODO: reduce code duplication by extracting all stream methods to a StoreBase class or mixin
   @override
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
@@ -190,14 +189,15 @@ class StateMachine<S> implements Store<S> {
 
   @override
   void dispatch<T>(Action<T> action) {
-    var currentAction = action;
-    while (currentAction != null) {
-      _store.dispatch(currentAction);
-      if (currentAction.name == _store.state.nextAction?.name) {
+    var currentActionName = action.name;
+    _store.dispatch(action);
+    while (true) {
+      if (_store.state.nextAction == null) break;
+      if (currentActionName == _store.state.nextAction?.name)
         throw new StateError('StateMachine action attempts to trigger action '
-            'of the same type: ${currentAction.name}');
-      }
-      currentAction = _store.state.nextAction;
+            'of the same type: ${currentActionName}');
+      currentActionName = _store.state.nextAction.name;
+      _store.dispatch(_store.state.nextAction);
       // Our onError handler always throws so if an error occurred during
       // dispatch we are guaranteed to exit this while loop.
       // One downside here is that current state might still have
