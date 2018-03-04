@@ -74,7 +74,7 @@ typedef StoreErrorHandler<S, T> = void Function(
 ///
 /// This handler simply throws the [error] as unhandled.
 void defaultStoreErrorHandler<S, T>(S state, Action<T> action, error) {
-  throw error;
+  // no-op
 }
 
 /// Builder for Redux state [Store].
@@ -166,6 +166,8 @@ class Store<S> {
       _controller.add(new StoreEvent<S, T>(this, oldState, _state, action));
     } catch (err) {
       _onError(_state, action, err);
+      // TODO: need a better error handling as it currently breaks stack trace. Below rethrow is a temporary workaround.
+      rethrow;
     }
   }
 
