@@ -40,6 +40,10 @@ class Action<T> {
 
   @override
   String toString() => 'Action{$name, $payload}';
+
+  StoreEvent<S, T> toEvent<S>(Store store, S oldState, S newState) {
+    return new StoreEvent<S, T>(store, oldState, newState, this);
+  }
 }
 
 /// Builder for actions.
@@ -147,12 +151,12 @@ class Store<S> {
   /// only if there is active listener on this stream (or [eventsWhere] stream).
   /// if there is no active listener for events the error is rethrown
   /// synchronously.
-  void dispatch<T>(Action<T> action) {
+  void dispatch(Action action) {
     _dispatch(action);
   }
 
   /// Internal dispatch method which returns `false` in case there is an error.
-  bool _dispatch<T>(Action<T> action) {
+  bool _dispatch(Action action) {
     assert(!_disposed,
         'Dispatching actions is not allowed in disposed state Store.');
     final S oldState = _state;
@@ -161,7 +165,7 @@ class Store<S> {
       if (reducer != null) {
         _state = reducer(oldState, action);
       }
-      _controller.add(new StoreEvent<S, T>(this, oldState, _state, action));
+      _controller.add(action.toEvent(this, oldState, _state));
       return true;
     } catch (err, stackTrace) {
       if (_controller.hasListener) {
@@ -213,7 +217,7 @@ abstract class MachineState<T> {
 class StateMachineBuilder<S extends MachineState> extends StoreBuilder<S> {
   StateMachineBuilder({S initialState}) : super(initialState: initialState);
 
-  StateMachine<S> build() => new StateMachine(_initialState, _reducers);
+  StateMachine<S> build() => new StateMachine<S>(_initialState, _reducers);
 }
 
 /// State machine which uses Redux data flow.
@@ -307,7 +311,7 @@ class StateMachine<S extends MachineState> extends Store<S> {
       : super._(initialState, reducers);
 
   @override
-  void dispatch<T>(Action<T> action) {
+  void dispatch(Action action) {
     var currentAction = action;
     _dispatch(action);
     while (true) {

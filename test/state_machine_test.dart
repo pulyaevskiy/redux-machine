@@ -18,7 +18,8 @@ void main() {
         ..bind(Actions.append, appendReducer)
         ..bind(Actions.loop, loopReducer)
         ..bind(Actions.chainError, chainErrorReducer)
-        ..bind(Actions.error, errorReducer);
+        ..bind(Actions.error, errorReducer)
+        ..bind(Actions.dyn, dynamicReducer);
       machine = builder.build();
     });
 
@@ -41,6 +42,16 @@ void main() {
     test('dispatch chained', () {
       machine.dispatch(Actions.chain('chain'));
       expect(machine.state.data, 'chain-append');
+    });
+
+    test('dispatch dynamic', () async {
+      var result = machine.eventsWhere(Actions.chain).toList();
+      machine.dispatch(Actions.dyn(false));
+      machine.dispose();
+      var events = await result;
+      expect(events, hasLength(1));
+      expect(events.first.action.payload, 'dynamicChained');
+      expect(machine.state.data, 'dynamicChained-append');
     });
 
     test('dispatch infinite loop', () {
@@ -92,6 +103,7 @@ class Actions {
   static const loop = const ActionBuilder<void>('loop');
   static const chainError = const ActionBuilder<void>('chainError');
   static const error = const ActionBuilder<void>('error');
+  static const dyn = const ActionBuilder<bool>('dyn');
 }
 
 SimpleState putCoinReducer(SimpleState state, Action<void> action) {
@@ -124,4 +136,12 @@ SimpleState chainErrorReducer(SimpleState state, Action<void> action) {
 
 SimpleState errorReducer(SimpleState state, Action<void> action) {
   throw new StateError('Error');
+}
+
+SimpleState dynamicReducer(SimpleState state, Action<bool> action) {
+  if (action.payload) {
+    return state.copyWith(nextAction: Actions.putCoin());
+  } else {
+    return state.copyWith(nextAction: Actions.chain('dynamicChained'));
+  }
 }
