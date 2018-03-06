@@ -5,4 +5,3 @@
 library redux_machine;
 
 export 'src/store.dart';
-export 'src/state_machine.dart';

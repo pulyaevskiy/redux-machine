@@ -10,13 +10,15 @@ void main() {
 
     setUp(() {
       final builder = new StateMachineBuilder<SimpleState>(
-          initialState: new SimpleState(true));
+          initialState: new SimpleState<Null>(isLocked: true));
       builder
         ..bind(Actions.putCoin, putCoinReducer)
         ..bind(Actions.push, pushReducer)
         ..bind(Actions.chain, chainingReducer)
         ..bind(Actions.append, appendReducer)
-        ..bind(Actions.loop, loopReducer);
+        ..bind(Actions.loop, loopReducer)
+        ..bind(Actions.chainError, chainErrorReducer)
+        ..bind(Actions.error, errorReducer);
       machine = builder.build();
     });
 
@@ -28,7 +30,7 @@ void main() {
       expect(machine.state.isLocked, isTrue);
     });
 
-    test('trigger', () {
+    test('dispatch', () {
       expect(machine.state.isLocked, isTrue);
       machine.dispatch(Actions.putCoin());
       expect(machine.state.isLocked, isFalse);
@@ -36,65 +38,90 @@ void main() {
       expect(machine.state.isLocked, isTrue);
     });
 
-    test('trigger chained', () {
+    test('dispatch chained', () {
       machine.dispatch(Actions.chain('chain'));
       expect(machine.state.data, 'chain-append');
     });
 
-    test('trigger infinite loop', () {
+    test('dispatch infinite loop', () {
       expect(() {
         machine.dispatch(Actions.loop());
       }, throwsStateError);
     });
+
+    test('stach trace on dispatch with chained error and a listener', () async {
+      StackTrace trace;
+      try {
+        var result = machine.events.toList();
+        machine.dispatch(Actions.chainError());
+        machine.dispose();
+        await result;
+      } catch (error, stackTrace) {
+        trace = stackTrace;
+      }
+      expect(trace.toString(), contains('errorReducer'));
+    });
   });
 }
 
-class SimpleState {
+class SimpleState<T> extends MachineState<T> {
   final bool isLocked;
   final String data;
 
-  SimpleState(this.isLocked, [this.data = '']);
+  SimpleState({
+    this.isLocked,
+    this.data = '',
+    Action<T> nextAction,
+  }) : super(nextAction);
 
-  SimpleState copyWith({bool isLocked, String data}) {
-    return new SimpleState(isLocked ?? this.isLocked, data ?? this.data);
+  SimpleState<R> copyWith<R>(
+      {bool isLocked, String data, Action<R> nextAction}) {
+    return new SimpleState<R>(
+      isLocked: isLocked ?? this.isLocked,
+      data: data ?? this.data,
+      nextAction: nextAction,
+    );
   }
 }
 
 class Actions {
-  static const ActionBuilder<Null> putCoin =
-      const ActionBuilder<Null>('putCoin');
-  static const ActionBuilder<Null> push = const ActionBuilder<Null>('push');
-  static const ActionBuilder<String> chain =
-      const ActionBuilder<String>('chain');
-  static const ActionBuilder<String> append =
-      const ActionBuilder<String>('append');
-  static const ActionBuilder<Null> loop = const ActionBuilder<Null>('loop');
+  static const putCoin = const ActionBuilder<void>('putCoin');
+  static const push = const ActionBuilder<void>('push');
+  static const chain = const ActionBuilder<String>('chain');
+  static const append = const ActionBuilder<String>('append');
+  static const loop = const ActionBuilder<void>('loop');
+  static const chainError = const ActionBuilder<void>('chainError');
+  static const error = const ActionBuilder<void>('error');
 }
 
-SimpleState putCoinReducer(
-    SimpleState state, Action<Null> action, ActionDispatcher dispatchNext) {
+SimpleState putCoinReducer(SimpleState state, Action<void> action) {
   return state.copyWith(isLocked: false);
 }
 
-SimpleState pushReducer(
-    SimpleState state, Action<Null> action, ActionDispatcher dispatchNext) {
+SimpleState pushReducer(SimpleState state, Action<void> action) {
   return state.copyWith(isLocked: true);
 }
 
-SimpleState chainingReducer(
-    SimpleState state, Action<String> action, ActionDispatcher dispatchNext) {
-  dispatchNext(Actions.append('-append'));
-  return state.copyWith(isLocked: false, data: action.payload);
+SimpleState chainingReducer(SimpleState state, Action<String> action) {
+  return state.copyWith(
+      isLocked: false,
+      data: action.payload,
+      nextAction: Actions.append('-append'));
 }
 
-SimpleState appendReducer(
-    SimpleState state, Action<String> action, ActionDispatcher dispatchNext) {
+SimpleState appendReducer(SimpleState state, Action<String> action) {
   String data = state.data + action.payload;
   return state.copyWith(isLocked: false, data: data);
 }
 
-SimpleState loopReducer(
-    SimpleState state, Action<String> action, ActionDispatcher dispatchNext) {
-  dispatchNext(Actions.loop());
-  return state.copyWith();
+SimpleState loopReducer(SimpleState state, Action<void> action) {
+  return state.copyWith(nextAction: Actions.loop());
+}
+
+SimpleState chainErrorReducer(SimpleState state, Action<void> action) {
+  return state.copyWith(nextAction: Actions.error());
+}
+
+SimpleState errorReducer(SimpleState state, Action<void> action) {
+  throw new StateError('Error');
 }

@@ -9,7 +9,8 @@ import 'package:redux_machine/redux_machine.dart';
 void main() {
   // Create our machine and register reducers:
   final builder = new StateMachineBuilder<Turnstile>(
-      initialState: new Turnstile(true, 0, 0));
+    initialState: new Turnstile<void>(true, 0, 0, null),
+  );
   builder
     ..bind(Actions.putCoin, putCoinReducer)
     ..bind(Actions.push, pushReducer);
@@ -31,45 +32,46 @@ void main() {
   machine.dispose();
 }
 
-class Turnstile {
+class Turnstile<T> extends MachineState<T> {
   final bool isLocked;
   final int coinsCollected;
   final int visitorsPassed;
 
-  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed);
+  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed,
+      Action<T> nextAction)
+      : super(nextAction);
 
   /// Convenience method to use in reducers.
-  Turnstile copyWith({
+  Turnstile<R> copyWith<R>({
     bool isLocked,
     int coinsCollected,
     int visitorsPassed,
+    Action<R> nextAction,
   }) {
     return new Turnstile(
       isLocked ?? this.isLocked,
       coinsCollected ?? this.coinsCollected,
       visitorsPassed ?? this.visitorsPassed,
+      nextAction,
     );
   }
 }
 
 abstract class Actions {
   /// Put coin to unlock turnstile
-  static const ActionBuilder<Null> putCoin =
-      const ActionBuilder<Null>('putCoin');
+  static const putCoin = const ActionBuilder<void>('putCoin');
 
   /// Push turnstile to pass through
-  static const ActionBuilder<Null> push = const ActionBuilder<Null>('push');
+  static const push = const ActionBuilder<void>('push');
 }
 
-Turnstile putCoinReducer(
-    Turnstile state, Action<Null> action, ActionDispatcher dispatcher) {
+Turnstile putCoinReducer(Turnstile state, Action<void> action) {
   int coinsCollected = state.coinsCollected + 1;
   print('Coins collected: $coinsCollected');
   return state.copyWith(isLocked: false, coinsCollected: coinsCollected);
 }
 
-Turnstile pushReducer(
-    Turnstile state, Action<Null> action, ActionDispatcher dispatcher) {
+Turnstile pushReducer(Turnstile state, Action<void> action) {
   int visitorsPassed = state.visitorsPassed;
   if (!state.isLocked) {
     visitorsPassed++;

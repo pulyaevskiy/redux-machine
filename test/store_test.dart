@@ -1,6 +1,8 @@
 // Copyright (c) 2018, Anatoly Pulyaevskiy. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
+import 'dart:async';
+
 import 'package:redux_machine/redux_machine.dart';
 import 'package:test/test.dart';
 
@@ -12,11 +14,11 @@ void main() {
     setUp(() {
       errorMessage = null;
       final builder = new StoreBuilder<Car>(
-          initialState: new Car(false, HeadlampsMode.off),
-          onError: (state, action, error) {
-            errorMessage = error.toString();
-            throw error;
-          });
+          initialState: new Car(false, HeadlampsMode.off));
+      // onError: (state, action, error) {
+      //   errorMessage = error.toString();
+      //   throw error;
+      // });
       builder
         ..bind(Actions.turnEngineOn, turnEngineOn)
         ..bind(Actions.switchHeadlamps, switchHeadlampsTo)
@@ -65,18 +67,27 @@ void main() {
       expect(events, completion(hasLength(4)));
     });
 
-    test('default errors', () {
-      expect(() {
+    test('stack trace with no listener', () async {
+      StackTrace trace;
+      try {
         store.dispatch(Actions.error());
-      }, throwsStateError);
+      } catch (error, stackTrace) {
+        trace = stackTrace;
+      }
+      expect(trace.toString(), contains('errorReducer'));
     });
 
-    test('onError handler', () {
-      // TODO: make this test better
-      expect(() {
+    test('stack trace with a listener', () async {
+      StackTrace trace;
+      try {
+        var result = store.events.toList();
         store.dispatch(Actions.error());
-      }, throwsStateError);
-      expect(errorMessage, 'Bad state: Something bad happened');
+        store.dispose();
+        await result;
+      } catch (error, stackTrace) {
+        trace = stackTrace;
+      }
+      expect(trace.toString(), contains('errorReducer'));
     });
   });
 }

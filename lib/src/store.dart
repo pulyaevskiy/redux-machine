@@ -13,18 +13,18 @@ import 'dart:async';
 ///
 ///     // Declare a namespace class called `Actions` to group all Actions
 ///     // together.
-///     class Actions {
+///     abstract class Actions {
 ///       // Declare constant field holding ActionBuilder for each action.
 ///       // Make sure to specify distinct names and type arguments.
-///       static const ActionBuilder<Null> init = const ActionBuilder<Null>('init');
+///       static const init = const ActionBuilder<void>('init');
 ///       // If an action accepts a payload make sure to specify the payload type
-///       static const ActionBuilder<Data> doWork = const ActionBuilder<Data>('doWork');
+///       static const doWork = const ActionBuilder<Data>('doWork');
 ///     }
 ///
 ///     void main() {
 ///       // Execute an action:
-///       store.trigger(Actions.init()); // no payload
-///       store.trigger(Actions.doWork(data)); // with payload
+///       store.dispatch(Actions.init()); // no payload
+///       store.dispatch(Actions.doWork(data)); // with payload
 ///     }
 class Action<T> {
   /// The name of this action.
@@ -47,10 +47,9 @@ class Action<T> {
 /// Builder implements [Function] interface so that each `call` of a builder
 /// returns a fresh [Action] instance. For instance:
 ///
-///     const ActionBuilder<String> updateName =
-///       const ActionBuilder<String>('updateName');
+///     const updateName = const ActionBuilder<String>('updateName');
 ///     // `updateName` constant can now be executed as a function
-///     Action action = updateName('John'); // Action('updateName', 'John');
+///     final action = updateName('John'); // Action('updateName', 'John');
 ///
 /// See [Action] for more details and better usage example.
 class ActionBuilder<T> implements Function {
@@ -67,23 +66,10 @@ class ActionBuilder<T> implements Function {
 /// Signature for Redux reducer functions.
 typedef Reducer<S, T> = S Function(S state, Action<T> action);
 
-typedef StoreErrorHandler<S, T> = void Function(
-    S state, Action<T> action, dynamic error);
-
-/// Default error handler for state [Store].
-///
-/// This handler simply throws the [error] as unhandled.
-void defaultStoreErrorHandler<S, T>(S state, Action<T> action, error) {
-  // no-op
-}
-
 /// Builder for Redux state [Store].
 class StoreBuilder<S> {
-  StoreBuilder({S initialState, StoreErrorHandler<S, dynamic> onError})
-      : _initialState = initialState,
-        _onError = onError;
+  StoreBuilder({S initialState}) : _initialState = initialState;
   S _initialState;
-  StoreErrorHandler<S, dynamic> _onError;
 
   final Map<String, dynamic> _reducers = {};
 
@@ -92,7 +78,7 @@ class StoreBuilder<S> {
     _reducers[action.name] = reducer;
   }
 
-  Store<S> build() => new Store._(_initialState, _reducers, _onError);
+  Store<S> build() => new Store._(_initialState, _reducers);
 }
 
 /// Redux State Store.
@@ -100,16 +86,13 @@ class StoreBuilder<S> {
 /// To create a new [Store] instance use [StoreBuilder].
 class Store<S> {
   /// Creates a new [Store].
-  Store._(S initialState, Map<String, dynamic> reducers,
-      StoreErrorHandler<S, dynamic> onError)
+  Store._(S initialState, Map<String, dynamic> reducers)
       : _controller = new StreamController.broadcast(),
         _state = initialState,
-        _reducers = reducers,
-        _onError = onError ?? defaultStoreErrorHandler;
+        _reducers = reducers;
 
   final Map<String, dynamic> _reducers;
   final StreamController<StoreEvent<S, dynamic>> _controller;
-  final StoreErrorHandler<S, dynamic> _onError;
 
   bool _disposed = false;
 
@@ -122,7 +105,7 @@ class Store<S> {
   /// For only state changes see [changes] stream.
   Stream<StoreEvent<S, dynamic>> get events => _controller.stream;
 
-  /// Stream of all events triggered by action type of [action].
+  /// Stream of all events triggered by actions of type [action].
   Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
     assert(action != null);
     return events.where((event) => event.action.name == action.name).cast();
@@ -154,20 +137,38 @@ class Store<S> {
       changes.map(subState).distinct();
 
   /// Dispatches provided [action].
+  ///
+  /// Executes reducer function registered for the [action] and publishes
+  /// [StoreEvent] to the [events] stream. If there is no reducer function
+  /// registered for [action] a [StoreEvent] is still published with "old" and
+  /// "new" state values referencing the same instance of state object.
+  ///
+  /// If reducer function throws an error it is forwarded to the [events] stream
+  /// only if there is active listener on this stream (or [eventsWhere] stream).
+  /// if there is no active listener for events the error is rethrown
+  /// synchronously.
   void dispatch<T>(Action<T> action) {
+    _dispatch(action);
+  }
+
+  /// Internal dispatch method which returns `false` in case there is an error.
+  bool _dispatch<T>(Action<T> action) {
     assert(!_disposed,
         'Dispatching actions is not allowed in disposed state Store.');
     final S oldState = _state;
     try {
-      final Reducer<S, T> reducer = _reducers[action.name];
+      final reducer = _reducers[action.name];
       if (reducer != null) {
         _state = reducer(oldState, action);
       }
       _controller.add(new StoreEvent<S, T>(this, oldState, _state, action));
-    } catch (err) {
-      _onError(_state, action, err);
-      // TODO: need a better error handling as it currently breaks stack trace. Below rethrow is a temporary workaround.
-      rethrow;
+      return true;
+    } catch (err, stackTrace) {
+      if (_controller.hasListener) {
+        _controller.addError(err, stackTrace);
+        return false;
+      } else
+        rethrow;
     }
   }
 
@@ -198,4 +199,132 @@ class StoreEvent<S, T> {
 
   @override
   String toString() => "StoreEvent{$action, $oldState, $newState}";
+}
+
+/// State object interface required for [StateMachine].
+abstract class MachineState<T> {
+  MachineState(this.nextAction);
+
+  /// Next action to invoke.
+  final Action<T> nextAction;
+}
+
+/// Builder for [StateMachine]s.
+class StateMachineBuilder<S extends MachineState> extends StoreBuilder<S> {
+  StateMachineBuilder({S initialState}) : super(initialState: initialState);
+
+  StateMachine<S> build() => new StateMachine(_initialState, _reducers);
+}
+
+/// State machine which uses Redux data flow.
+///
+/// Use [StateMachineBuilder] to create a new [StateMachine].
+///
+/// To operate a StateMachine following three things are required:
+/// - a state object which extends base [MachineState] class.
+/// - action definitions
+/// - reducer functions to handle actions
+///
+/// ## Defining state
+///
+/// [StateMachine] requires state objects to extend special [MachineState] base
+/// class which contains one extra property - [MachineState.nextAction]. A
+/// reducer may use this property to dispatch another Redux action after it's
+/// done.
+///
+/// For simple use cases consider following below example:
+///
+///     /// 1. Declare all fields as `final`.
+///     /// 2. Define helper `copyWith` method to use in reducers
+///     /// 3. Declare compound boolean getters for better semantics
+///     /// 4. Implement `==` and `hashCode`.
+///     class CarState<T> extends MachineState<T> {
+///       final bool isEngineOn;
+///       final double acceleration;
+///       final double speed;
+///       CarState({
+///         this.isEngineOn,
+///         this.acceleration,
+///         this.speed,
+///         Action<T> nextAction,
+///       }): super(nextAction);
+///
+///       bool get isMoving => speed > 0.0;
+///
+///       CarState<R> copyWith<R>({
+///         bool isEngineOn,
+///         double acceleration,
+///         double speed,
+///         Action<R> nextAction,
+///       }) {
+///         return new CarState<R>(
+///           isEngineOn: isEngineOn ?? this.isEngineOn,
+///           acceleration: acceleration ?? this.acceleration,
+///           speed: speed ?? this.speed,
+///           nextAction,
+///         );
+///       }
+///     }
+///
+/// ## Defining actions
+///
+/// Actions must be declared using provided [Action] and [ActionBuilder] classes.
+/// See documentation on [Action] class for a complete example.
+///
+/// ## Defining reducers
+///
+/// StateMachine reducer is any function which follows [Reducer] interface.
+/// For more details see [Reducer] documentation.
+///
+/// ## Running StateMachine
+///
+/// When state, actions and reducers are defined we can create and run a state
+/// machine:
+///
+///     abstract class Actions {
+///       static const engineOn = const ActionBuilder<void>('engineOn');
+///       // more action definitions here.
+///     }
+///
+///     CarState engineOnReducer(CarState state, Action<void> action) {
+///       return state.copyWith(isEngineOn: true);
+///     }
+///
+///     void main() {
+///       final builder = new StateMachineBuilder<CarState>(
+///         initialState: new CarState<Null>());
+///       builder.bind(Actions.engineOn, engineOnReducer);
+///
+///       StateMachine<CarState> machine = builder.build();
+
+///       // Dispatch actions
+///       machine.dispatch(Actions.engineOn());
+///       // Dispose the machine when done
+///       machine.dispose();
+///     }
+class StateMachine<S extends MachineState> extends Store<S> {
+  StateMachine(S initialState, Map<String, dynamic> reducers)
+      : super._(initialState, reducers);
+
+  @override
+  void dispatch<T>(Action<T> action) {
+    var currentAction = action;
+    _dispatch(action);
+    while (true) {
+      if (state.nextAction == null) break;
+      if (currentAction.name == state.nextAction?.name)
+        throw new StateError(
+            'StateMachine action attempts to dispatch an action '
+            'of the same type "${currentAction.name}" which can '
+            'cause an infinite loop and therefore forbidden.');
+      currentAction = state.nextAction;
+      if (!_dispatch(state.nextAction)) {
+        /// If [_dispatch] call failed with an error which was published to
+        /// the events stream the error will surface at a later iteration of
+        /// the event loop. We must exit our while-loop here or otherwise it will
+        /// run forever.
+        break;
+      }
+    }
+  }
 }
