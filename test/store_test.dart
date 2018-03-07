@@ -1,8 +1,6 @@
 // Copyright (c) 2018, Anatoly Pulyaevskiy. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
-import 'dart:async';
-
 import 'package:redux_machine/redux_machine.dart';
 import 'package:test/test.dart';
 
@@ -16,7 +14,8 @@ void main() {
       builder
         ..bind(Actions.turnEngineOn, turnEngineOn)
         ..bind(Actions.switchHeadlamps, switchHeadlampsTo)
-        ..bind(Actions.error, errorReducer);
+        ..bind(Actions.error, errorReducer)
+        ..bind(Actions.asyncDo, asyncDoReducer);
       store = builder.build();
     });
 
@@ -83,17 +82,24 @@ void main() {
       }
       expect(trace.toString(), contains('errorReducer'));
     });
+
+    test('dispatch async action', () async {
+      var events = store.eventsWhere(Actions.asyncDo).toList();
+      store.dispatch(Actions.asyncDo());
+      store.dispose();
+      var list = await events;
+      expect(list, hasLength(1));
+    });
   });
 }
 
 class Actions {
-  static const ActionBuilder<bool> turnEngineOn =
-      const ActionBuilder<bool>('turnEngineOn');
-  static const ActionBuilder<HeadlampsMode> switchHeadlamps =
+  static const turnEngineOn = const ActionBuilder<bool>('turnEngineOn');
+  static const switchHeadlamps =
       const ActionBuilder<HeadlampsMode>('switchHeadlamps');
-  static const ActionBuilder<void> error = const ActionBuilder<void>('error');
-  static const ActionBuilder<void> notBound =
-      const ActionBuilder<void>('notBound');
+  static const error = const ActionBuilder<void>('error');
+  static const notBound = const ActionBuilder<void>('notBound');
+  static const asyncDo = const AsyncActionBuilder<void>('asyncDo');
 }
 
 enum HeadlampsMode { off, on, highBeams }
@@ -118,4 +124,8 @@ Car switchHeadlampsTo(Car state, Action<HeadlampsMode> action) {
 
 Car errorReducer(Car state, Action<void> action) {
   throw new StateError('Something bad happened');
+}
+
+Car asyncDoReducer(Car state, AsyncAction<void> action) {
+  return new Car(true, HeadlampsMode.off);
 }

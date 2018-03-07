@@ -60,7 +60,7 @@ void main() {
       }, throwsStateError);
     });
 
-    test('stach trace on dispatch with chained error and a listener', () async {
+    test('stack trace on dispatch with chained error and a listener', () async {
       StackTrace trace;
       try {
         var result = machine.events.toList();

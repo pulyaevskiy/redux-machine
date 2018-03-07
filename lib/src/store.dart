@@ -41,7 +41,7 @@ class Action<T> {
   Action(this.name, this.payload);
 
   @override
-  String toString() => 'Action{$name, $payload}';
+  String toString() => '$runtimeType{$name, $payload}';
 
   StoreEvent<S, T> toEvent<S>(Store store, S oldState, S newState) {
     return new StoreEvent<S, T>(store, oldState, newState, this);
@@ -92,7 +92,7 @@ class AsyncActionBuilder<T> extends ActionBuilder<T> {
 }
 
 /// Signature for Redux reducer functions.
-typedef Reducer<S, T> = S Function(S state, Action<T> action);
+typedef Reducer<S, T, A extends Action<T>> = S Function(S state, A action);
 
 /// Builder for Redux state [Store].
 class StoreBuilder<S> {
@@ -102,7 +102,7 @@ class StoreBuilder<S> {
   final Map<String, dynamic> _reducers = {};
 
   /// Binds [reducer] to specified [action] type.
-  void bind<T>(ActionBuilder<T> action, Reducer<S, T> reducer) {
+  void bind<T, A>(ActionBuilder<T> action, Reducer<S, T, A> reducer) {
     _reducers[action.name] = reducer;
   }
 
@@ -226,7 +226,7 @@ class StoreEvent<S, T> {
   StoreEvent(this.store, this.oldState, this.newState, this.action);
 
   @override
-  String toString() => "StoreEvent{$action, $oldState, $newState}";
+  String toString() => "$runtimeType{$action, $oldState, $newState}";
 }
 
 /// State object interface required for [StateMachine].
