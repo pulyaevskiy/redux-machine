@@ -3,6 +3,8 @@
 
 import 'dart:async';
 
+import 'package:meta/meta.dart';
+
 /// Redux action for state [Store].
 ///
 /// Actions trigger state transitions and are handled by a corresponding reducer
@@ -46,6 +48,18 @@ class Action<T> {
   }
 }
 
+@experimental
+class AsyncAction<T> extends Action<T> {
+  AsyncAction(String name, T payload) : super(name, payload);
+
+  final Completer<void> _completer = new Completer<void>();
+
+  void complete() => _completer.complete();
+  void completeError(error) => _completer.completeError(error);
+
+  Future<void> get done => _completer.future;
+}
+
 /// Builder for actions.
 ///
 /// Builder implements [Function] interface so that each `call` of a builder
@@ -56,7 +70,7 @@ class Action<T> {
 ///     final action = updateName('John'); // Action('updateName', 'John');
 ///
 /// See [Action] for more details and better usage example.
-class ActionBuilder<T> implements Function {
+class ActionBuilder<T> {
   /// The action name for this builder.
   final String name;
 
@@ -65,6 +79,19 @@ class ActionBuilder<T> implements Function {
 
   /// Creates new [Action] with optional [payload].
   Action<T> call([T payload]) => new Action<T>(name, payload);
+}
+
+/// Builder for [AsyncAction]s.
+@experimental
+class AsyncActionBuilder<T> {
+  /// The action name for this builder.
+  final String name;
+
+  /// Creates new action builder for an action specified by unique [name].
+  const AsyncActionBuilder(this.name);
+
+  /// Creates new [AsyncAction] with optional [payload].
+  AsyncAction<T> call([T payload]) => new AsyncAction<T>(name, payload);
 }
 
 /// Signature for Redux reducer functions.
