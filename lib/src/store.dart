@@ -83,12 +83,9 @@ class ActionBuilder<T> {
 
 /// Builder for [AsyncAction]s.
 @experimental
-class AsyncActionBuilder<T> {
-  /// The action name for this builder.
-  final String name;
-
+class AsyncActionBuilder<T> extends ActionBuilder<T> {
   /// Creates new action builder for an action specified by unique [name].
-  const AsyncActionBuilder(this.name);
+  const AsyncActionBuilder(String name) : super(name);
 
   /// Creates new [AsyncAction] with optional [payload].
   AsyncAction<T> call([T payload]) => new AsyncAction<T>(name, payload);
