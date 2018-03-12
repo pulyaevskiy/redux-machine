@@ -4,8 +4,21 @@ Originally started to provide implementation of a State Machine using
 Redux design pattern, this library now includes its own Redux Store
 which can be used without the state machine part.
 
-ReduxMachine tries to avoid traditional middleware approach and
-keep side-effects out of the main action-reducer-state flow.
+The `Store` class implements usual Redux state store and `StateMachine`
+class adds some extra functionality mostly to allow chaining actions.
+
+Action dispatch flow of both classes is very simple:
+
+1. User dispatches an action
+2. Store executes corresponding reducer function.
+3. Store publishes an event with results (normally includes oldState and newState).
+
+There is no middleware or anything else special. Reducers are pure functions,
+and dispatching an action is always synchronous.
+
+Main consequence of this design is that there is no place for middleware layer.
+There are other mechanisms that can help though.
+
 
 ## StateMachine Usage
 

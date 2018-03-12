@@ -58,6 +58,7 @@ class AsyncAction<T> extends Action<T> {
   void completeError(error) => _completer.completeError(error);
 
   Future<void> get done => _completer.future;
+  bool get isDone => _completer.isCompleted;
 }
 
 /// Builder for actions.
