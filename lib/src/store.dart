@@ -117,11 +117,13 @@ class Store<S> {
   /// Creates a new [Store].
   Store._(S initialState, Map<String, dynamic> reducers)
       : _controller = new StreamController.broadcast(),
+        _errors = new StreamController.broadcast(),
         _state = initialState,
         _reducers = reducers;
 
   final Map<String, dynamic> _reducers;
   final StreamController<StoreEvent<S, dynamic>> _controller;
+  final StreamController _errors;
 
   bool _disposed = false;
 
@@ -129,16 +131,26 @@ class Store<S> {
   S get state => _state;
   S _state;
 
+  /// Stream of all errors occurred in this store.
+  ///
+  /// If there is no listener on this stream then errors are rethrown
+  /// synchronously during dispatch.
+  Stream get errors => _errors.stream;
+
   /// Stream of all events occurred in this store.
   ///
   /// For only state changes see [changes] stream.
   Stream<StoreEvent<S, dynamic>> get events => _controller.stream;
 
   /// Stream of all events triggered by actions of type [action].
-  Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) {
+  Stream<StoreEvent<S, T>> eventsFor<T>(ActionBuilder<T> action) {
     assert(action != null);
     return events.where((event) => event.action.name == action.name).cast();
   }
+
+  @Deprecated('Use "eventsFor" instead')
+  Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) =>
+      eventsFor<T>(action);
 
   /// Stream of all state changes occurred in this store.
   ///
@@ -148,7 +160,7 @@ class Store<S> {
 
   /// Stream of all changes for a part of application's state.
   ///
-  /// [subState] function must return specific sub-state object from the
+  /// [mapper] function must return specific sub-state object from the
   /// application [state]. The sub-state class is responsible for implementing
   /// equality operator `==` as it is used to compare current and previous
   /// values of this type. Example:
@@ -162,8 +174,7 @@ class Store<S> {
   ///     store.changesFor((Car state) => state.headlamps).listen((mode) {
   ///       print('Headlamps mode changed to $mode');
   ///     });
-  Stream<T> changesFor<T>(T subState(S state)) =>
-      changes.map(subState).distinct();
+  Stream<T> changesFor<T>(T mapper(S state)) => changes.map(mapper).distinct();
 
   /// Dispatches provided [action].
   ///
@@ -173,7 +184,7 @@ class Store<S> {
   /// "new" state values referencing the same instance of state object.
   ///
   /// If reducer function throws an error it is forwarded to the [events] stream
-  /// only if there is active listener on this stream (or [eventsWhere] stream).
+  /// only if there is active listener on this stream (or [eventsFor] stream).
   /// if there is no active listener for events the error is rethrown
   /// synchronously.
   void dispatch(Action action) {
@@ -193,8 +204,8 @@ class Store<S> {
       _controller.add(action.toEvent(this, oldState, _state));
       return true;
     } catch (err, stackTrace) {
-      if (_controller.hasListener) {
-        _controller.addError(err, stackTrace);
+      if (_errors.hasListener) {
+        _errors.addError(err, stackTrace);
         return false;
       } else
         rethrow;
@@ -207,6 +218,7 @@ class Store<S> {
   void dispose() {
     _disposed = true;
     _controller.close();
+    _errors.close();
   }
 }
 

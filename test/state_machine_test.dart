@@ -45,7 +45,7 @@ void main() {
     });
 
     test('dispatch dynamic', () async {
-      var result = machine.eventsWhere(Actions.chain).toList();
+      var result = machine.eventsFor(Actions.chain).toList();
       machine.dispatch(Actions.dyn(false));
       machine.dispose();
       var events = await result;

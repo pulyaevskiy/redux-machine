@@ -144,16 +144,16 @@ store.events.listen(print);
 
 ## Middleware example 2: error reporting
 
-Any unhandled errors in reducers are forwarded to the `events` stream if there
+Any unhandled errors in reducers are forwarded to the `errors` stream if there
 is an active listener on it. If there is no active listener all errors are 
-simply rethrown.
+simply rethrown during dispatch.
 
-To log all unhandled errors simply subscribe to "error" events:
+To log all unhandled errors listen on the "errors" stream.
 
 ```dart
 final Store<MyState> store = getStore();
 // Print all events to stdout:
-store.events.listen(null, onError: errorHandler, cancelOnError: false);
+store.errors.listen(null, onError: errorHandler, cancelOnError: false);
 
 // Example error handler
 void errorHandler(error, stackTrace) {
@@ -166,14 +166,13 @@ stream.
 
 ## Middleware example 3: making HTTP request
 
-In below example we use `Store.eventsWhere` stream returns a stream of events
+In below example we use `Store.eventsFor` stream returns a stream of events
 produced by the same action type (in this case all "fetchUser" events).
 
 ```dart
 final Store<MyState> store = getStore();
-// Note that async is allowed in event listeners
-// We use eventsWhere
-store.eventsWhere(Actions.fetchUser).listen((Action<String> event) async {
+// Note that async is allowed in event listeners.
+store.eventsFor(Actions.fetchUser).listen((Action<String> event) async {
   try {
     // assuming action payload is the ID of a user to fetch.
     String userId = event.action.payload; 

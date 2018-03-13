@@ -3,9 +3,9 @@
 - Breaking: Depends on Dart SDK 2.0.0-dev
 - Breaking: Removed deprecated `ReduxMachine` and related classes.
 - Breaking: removed `onError` handler on `StoreBuilder` and `StateMachineBuilder`
-    Unhandled errors from reducers are propagated to `Store.events` Stream if
-    there is an active listener on it. If there is no active listener then
-    errors are simply rethrown synchronously.
+    Unhandled errors from reducers are propagated to the new `Store.errors` 
+    Stream if there is an active listener on it. If there is no active listener
+    then errors are simply rethrown synchronously.
 - Breaking: StateMachine now requires state objects to extend `MachineState`
     base class. See documentation for more details on how to use it.
 - Breaking: Removed `ActionDispatcher`, `StateMachineReducer` interfaces.
@@ -13,6 +13,8 @@
 - Breaking: Removed `StoreErrorHandler` definition.
 - Fixed: strong mode issues with Dart 2.
 - Fixed: stack trace propagation in case of errors originated in reducers.
+- Added: `AsyncAction` which allows dispatching code to know when it completes
+  and if there was an error.
 
 ## 0.1.2
 

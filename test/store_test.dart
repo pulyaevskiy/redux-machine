@@ -32,8 +32,8 @@ void main() {
       expect(events, completion(hasLength(2)));
     });
 
-    test('eventsWhere', () {
-      var events = store.eventsWhere(Actions.notBound).toList();
+    test('eventsFor', () {
+      var events = store.eventsFor(Actions.notBound).toList();
       store.dispatch(Actions.turnEngineOn(true));
       store.dispatch(Actions.notBound());
       store.dispose();
@@ -84,7 +84,7 @@ void main() {
     });
 
     test('dispatch async action', () async {
-      var events = store.eventsWhere(Actions.asyncDo).toList();
+      var events = store.eventsFor(Actions.asyncDo).toList();
       store.dispatch(Actions.asyncDo());
       store.dispose();
       var list = await events;
