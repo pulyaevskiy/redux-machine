@@ -13,8 +13,8 @@
 - Breaking: Removed `StoreErrorHandler` definition.
 - Fixed: strong mode issues with Dart 2.
 - Fixed: stack trace propagation in case of errors originated in reducers.
-- Added: `AsyncAction` which allows dispatching code to know when it completes
-  and if there was an error.
+- Experimental: `AsyncAction` which allows dispatching code to know when it
+  completes and if there was an error.
 
 ## 0.1.2
 

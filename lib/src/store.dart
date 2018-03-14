@@ -43,8 +43,12 @@ class Action<T> {
   @override
   String toString() => '$runtimeType{$name, $payload}';
 
-  StoreEvent<S, T> toEvent<S>(Store store, S oldState, S newState) {
+  StoreEvent<S, T> _toEvent<S>(Store store, S oldState, S newState) {
     return new StoreEvent<S, T>(store, oldState, newState, this);
+  }
+
+  StoreError<S, T> _toError<S>(Store<S> store, S state, error) {
+    return new StoreError<S, T>(error, this, state, store);
   }
 }
 
@@ -117,13 +121,13 @@ class Store<S> {
   /// Creates a new [Store].
   Store._(S initialState, Map<String, dynamic> reducers)
       : _controller = new StreamController.broadcast(),
-        _errors = new StreamController.broadcast(),
+        _errors = new StreamController<StoreError<S, dynamic>>.broadcast(),
         _state = initialState,
         _reducers = reducers;
 
   final Map<String, dynamic> _reducers;
   final StreamController<StoreEvent<S, dynamic>> _controller;
-  final StreamController _errors;
+  final StreamController<StoreError<S, dynamic>> _errors;
 
   bool _disposed = false;
 
@@ -183,10 +187,9 @@ class Store<S> {
   /// registered for [action] a [StoreEvent] is still published with "old" and
   /// "new" state values referencing the same instance of state object.
   ///
-  /// If reducer function throws an error it is forwarded to the [events] stream
-  /// only if there is active listener on this stream (or [eventsFor] stream).
-  /// if there is no active listener for events the error is rethrown
-  /// synchronously.
+  /// If reducer function throws an error it is forwarded to the [errors] stream
+  /// only if there is active listener on this stream. If there is no active
+  /// listener for errors the error is rethrown synchronously.
   void dispatch(Action action) {
     _dispatch(action);
   }
@@ -201,14 +204,14 @@ class Store<S> {
       if (reducer != null) {
         _state = reducer(oldState, action);
       }
-      _controller.add(action.toEvent(this, oldState, _state));
+      _controller.add(action._toEvent<S>(this, oldState, _state));
       return true;
     } catch (err, stackTrace) {
       if (_errors.hasListener) {
-        _errors.addError(err, stackTrace);
+        _errors.addError(action._toError<S>(this, _state, err), stackTrace);
         return false;
-      } else
-        rethrow;
+      }
+      rethrow;
     }
   }
 
@@ -240,6 +243,22 @@ class StoreEvent<S, T> {
 
   @override
   String toString() => "$runtimeType{$action, $oldState, $newState}";
+}
+
+/// An unhandled error occurred during action dispatch.
+///
+/// See also:
+/// - [Store.errors] - a stream of all unhandled errors.
+class StoreError<S, T> {
+  final error;
+  final Action<T> action;
+  final S state;
+  final Store<S> store;
+
+  StoreError(this.error, this.action, this.state, this.store);
+
+  @override
+  String toString() => "$runtimeType{$error, $action, $state}";
 }
 
 /// State object interface required for [StateMachine].

@@ -148,6 +148,11 @@ Any unhandled errors in reducers are forwarded to the `errors` stream if there
 is an active listener on it. If there is no active listener all errors are 
 simply rethrown during dispatch.
 
+> Note that `Store.errors` stream contains instances of `StoreError` which provide
+> details about the failed action and current state. In case there is no
+> listener on this stream the unhandled error from reducer is rethrown as-is
+> (not wrapped with `StoreError`) to preserve original stack trace.
+
 To log all unhandled errors listen on the "errors" stream.
 
 ```dart

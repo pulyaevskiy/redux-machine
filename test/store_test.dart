@@ -73,7 +73,7 @@ void main() {
     test('stack trace with a listener', () async {
       StackTrace trace;
       try {
-        var result = store.events.toList();
+        var result = store.errors.toList();
         store.dispatch(Actions.error());
         store.dispose();
         await result;
