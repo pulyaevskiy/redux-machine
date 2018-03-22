@@ -10,7 +10,7 @@ void main() {
 
     setUp(() {
       final builder = new StateMachineBuilder<SimpleState>(
-          initialState: new SimpleState<Null>(isLocked: true));
+          initialState: new SimpleState(isLocked: true));
       builder
         ..bind(Actions.putCoin, putCoinReducer)
         ..bind(Actions.push, pushReducer)

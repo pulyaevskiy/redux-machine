@@ -17,7 +17,7 @@ There is no middleware or anything else special. Reducers are pure functions,
 and dispatching an action is always synchronous.
 
 Main consequence of this design is that there is no place for middleware layer.
-There are other mechanisms that can help though.
+There are other mechanisms provided by redux_machine that replace middleware.
 
 ## Usage
 
@@ -86,13 +86,13 @@ Turnstile pushReducer(Turnstile state, Action<void> action) {
 }
 ```
 
-Now get it all together:
+Combining everything together:
 
 ```dart
 void main() {
   // Create our machine and register reducers using provided builder class:
   final builder = new StateMachineBuilder<Turnstile>(
-    initialState: new Turnstile<Null>(true, 0, 0, null));
+    initialState: new Turnstile(true, 0, 0, null));
   builder
     ..bind(Actions.putCoin, putCoinReducer)
     ..bind(Actions.push, pushReducer);

@@ -352,7 +352,7 @@ class StateMachineBuilder<S extends MachineState> extends StoreBuilder<S> {
 ///
 ///     void main() {
 ///       final builder = new StateMachineBuilder<CarState>(
-///         initialState: new CarState<Null>());
+///         initialState: new CarState());
 ///       builder.bind(Actions.engineOn, engineOnReducer);
 ///
 ///       StateMachine<CarState> machine = builder.build();
