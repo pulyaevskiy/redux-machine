@@ -97,7 +97,7 @@ class AsyncActionBuilder<T> extends ActionBuilder<T> {
 }
 
 /// Signature for Redux reducer functions.
-typedef Reducer<S, T, A extends Action<T>> = S Function(S state, A action);
+typedef Reducer<S, T> = S Function(S state, Action<T> action);
 
 /// Builder for Redux state [Store].
 class StoreBuilder<S> {
@@ -107,7 +107,7 @@ class StoreBuilder<S> {
   final Map<String, dynamic> _reducers = {};
 
   /// Binds [reducer] to specified [action] type.
-  void bind<T, A>(ActionBuilder<T> action, Reducer<S, T, A> reducer) {
+  void bind<T, A>(covariant ActionBuilder<T> action, Reducer<S, T> reducer) {
     _reducers[action.name] = reducer;
   }
 

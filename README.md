@@ -120,7 +120,7 @@ State exampleReducer( State state, Action<void> action) {
   // do work here
   // ...
 
-  // State machine will call reducer for `otherAction` with the state object 
+  // State machine will call reducer for `otherAction` with the state object
   // returned from this reducer.
   return state.copyWith(
     exampleField: 'value',
@@ -145,7 +145,7 @@ store.events.listen(print);
 ## Middleware example 2: error reporting
 
 Any unhandled errors in reducers are forwarded to the `errors` stream if there
-is an active listener on it. If there is no active listener all errors are 
+is an active listener on it. If there is no active listener all errors are
 simply rethrown during dispatch.
 
 > Note that `Store.errors` stream contains instances of `StoreError` which provide
@@ -180,7 +180,7 @@ final Store<MyState> store = getStore();
 store.eventsFor(Actions.fetchUser).listen((Action<String> event) async {
   try {
     // assuming action payload is the ID of a user to fetch.
-    String userId = event.action.payload; 
+    String userId = event.action.payload;
     final user = await fetchUserFromHttpApi(userId);
     store.dispatch(Actions.userFetched(user));
   } catch (error) {
@@ -189,6 +189,64 @@ store.eventsFor(Actions.fetchUser).listen((Action<String> event) async {
 });
 
 store.dispatch(Actions.fetchUser('user-id-here'));
+```
+
+## Async actions (experimental)
+
+`AsyncAction` is like regular Redux `Action` except it also carries a `Future`.
+In many cases it can be a simpler alternative to traditional trio of actions
+`doFoo`, `doFooSuccess` and `doFooFailed`.
+
+Common use case for async actions is when no explicit UI interaction is
+expected with the user after the action is done. For intance, deleting
+content or swiping list items left or right.
+
+### Using async actions
+
+Async actions assume there are side-effects involved so they are normally
+handled by an event stream listener where side-effects are allowed:
+
+```dart
+abstract class Actions {
+  /// Action payload is an integer ID of the note to delete.
+  static const deleteNote = const AsyncActionBuilder<int>('deleteNote');
+}
+
+// Subscribing to deleteNote events.
+Store buildStore() {
+  final builder = new StoreBuilder<AppState>();
+  // ...bind reducers
+  final store = builder.build();
+  store.eventsFor(Actions.deleteNote).listen(_deleteNote);
+}
+
+/// Listener for deleteNote events
+_deleteNote(StoreEvent<AppState, int> event) async {
+  AsyncAction<int> action = event.action;
+  int noteId = action.payload;
+  try {
+    var result = httpClient.send('DELETE', '/notes/$noteId');
+    // Delete successful, mark the action as done
+    action.complete();
+  } catch (error) {
+    action.completeError(error);
+  }
+}
+
+// Somewhere on the client side where the action is dispatched
+deleteNoteButtonPressed(int noteId) async {
+  final action = Actions.deleteNote(noteId);
+  store.dispatch(action);
+  // refresh UI to show loading state, pseudo-code
+  setState(isLoading: true);
+  try {
+    await action.done;
+    setState(isLoading: false); // refresh UI, delete successful
+  } catch (error) {
+    // failed to delete, show the error.
+    setState(errorMessage: error.toString());
+  }
+}
 ```
 
 ## Features and bugs

@@ -126,6 +126,6 @@ Car errorReducer(Car state, Action<void> action) {
   throw new StateError('Something bad happened');
 }
 
-Car asyncDoReducer(Car state, AsyncAction<void> action) {
+Car asyncDoReducer(Car state, Action<void> action) {
   return new Car(true, HeadlampsMode.off);
 }
