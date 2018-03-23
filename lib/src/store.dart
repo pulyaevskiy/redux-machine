@@ -3,8 +3,6 @@
 
 import 'dart:async';
 
-import 'package:meta/meta.dart';
-
 /// Redux action for state [Store].
 ///
 /// Actions trigger state transitions and are handled by a corresponding reducer
@@ -52,7 +50,6 @@ class Action<T> {
   }
 }
 
-@experimental
 class AsyncAction<T> extends Action<T> {
   AsyncAction(String name, T payload) : super(name, payload);
 
@@ -111,7 +108,6 @@ class VoidActionBuilder extends ActionName<void> {
 /// Builder for [AsyncAction]s carrying non-empty payload.
 ///
 /// For async actions without any payload consider using [AsyncVoidActionBuilder].
-@experimental
 class AsyncActionBuilder<T> extends ActionName<T> {
   /// Creates new action builder for an action specified by unique [name].
   const AsyncActionBuilder(String name) : super(name);
@@ -123,7 +119,6 @@ class AsyncActionBuilder<T> extends ActionName<T> {
 /// Builder for [AsyncAction]s carrying empty (`void`) payload.
 ///
 /// For async actions with non-empty payload consider using [AsyncActionBuilder].
-@experimental
 class AsyncVoidActionBuilder extends ActionName<void> {
   const AsyncVoidActionBuilder(String name) : super(name);
 
