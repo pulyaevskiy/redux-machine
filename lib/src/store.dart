@@ -65,6 +65,11 @@ class AsyncAction<T> extends Action<T> {
   bool get isDone => _completer.isCompleted;
 }
 
+abstract class ActionName<T> {
+  final String name;
+  const ActionName(this.name);
+}
+
 /// Builder for actions carrying non-empty payload.
 ///
 /// For actions without any payload consider using [VoidActionBuilder].
@@ -81,14 +86,11 @@ class AsyncAction<T> extends Action<T> {
 /// See also:
 /// - [AsyncActionBuilder] - for actions that trigger async work.
 /// - [AsyncVoidActionBuilder] - for actions with no payload and trigger async work.
-class ActionBuilder<T> {
-  /// The action name for this builder.
-  final String name;
-
+class ActionBuilder<T> extends ActionName<T> {
   /// Creates new action builder for an action specified by unique [name].
-  const ActionBuilder(this.name);
+  const ActionBuilder(String name) : super(name);
 
-  /// Creates new [Action] with optional [payload].
+  /// Creates new [Action] with non-empty [payload].
   Action<T> call(T payload) => new Action<T>(name, payload);
 }
 
@@ -99,26 +101,22 @@ class ActionBuilder<T> {
 /// See also:
 /// - [AsyncActionBuilder] - for actions that trigger async work.
 /// - [AsyncVoidActionBuilder] - for actions with no payload and trigger async work.
-class VoidActionBuilder extends ActionBuilder<void> {
+class VoidActionBuilder extends ActionName<void> {
   const VoidActionBuilder(String name) : super(name);
 
-  @override
-  Action<void> call([payload]) {
-    // assert(payload != null, 'Non-null payload provided for VoidActionBuilder.');
-    return new Action<void>(name, null);
-  }
+  /// Creates new action with no payload.
+  Action<void> call() => new Action<void>(name, null);
 }
 
 /// Builder for [AsyncAction]s carrying non-empty payload.
 ///
 /// For async actions without any payload consider using [AsyncVoidActionBuilder].
 @experimental
-class AsyncActionBuilder<T> extends ActionBuilder<T> {
+class AsyncActionBuilder<T> extends ActionName<T> {
   /// Creates new action builder for an action specified by unique [name].
   const AsyncActionBuilder(String name) : super(name);
 
-  /// Creates new [AsyncAction] with optional [payload].
-  @override
+  /// Creates new [AsyncAction] with [payload].
   AsyncAction<T> call(T payload) => new AsyncAction<T>(name, payload);
 }
 
@@ -126,14 +124,11 @@ class AsyncActionBuilder<T> extends ActionBuilder<T> {
 ///
 /// For async actions with non-empty payload consider using [AsyncActionBuilder].
 @experimental
-class AsyncVoidActionBuilder extends AsyncActionBuilder<void> {
+class AsyncVoidActionBuilder extends ActionName<void> {
   const AsyncVoidActionBuilder(String name) : super(name);
 
-  AsyncAction<void> call([payload]) {
-    // assert(payload != null,
-    // 'Non-null payload provided for VoidAsyncActionBuilder.');
-    return new AsyncAction<void>(name, null);
-  }
+  /// Creates new [AsyncAction] with no payload.
+  AsyncAction<void> call() => new AsyncAction<void>(name, null);
 }
 
 /// Signature for Redux reducer functions.
@@ -146,8 +141,15 @@ class StoreBuilder<S> {
 
   final Map<String, dynamic> _reducers = {};
 
-  /// Binds [reducer] to specified [action] type.
-  void bind<T, A>(covariant ActionBuilder<T> action, Reducer<S, T> reducer) {
+  /// Binds [reducer] to specified [action].
+  ///
+  /// [action] argument can be one of action builders:
+  ///
+  /// - [ActionBuilder] - for regular actions with non-empty payload.
+  /// - [VoidActionBuilder] - for regular actions with empty (`void`) payload.
+  /// - [AsyncActionBuilder] - for async actions with non-empty payload.
+  /// - [VoidActionBuilder] - for async actions with empty (`void`) payload.
+  void bind<T, A>(covariant ActionName<T> action, Reducer<S, T> reducer) {
     _reducers[action.name] = reducer;
   }
 
@@ -187,13 +189,13 @@ class Store<S> {
   Stream<StoreEvent<S, dynamic>> get events => _controller.stream;
 
   /// Stream of all events triggered by actions of type [action].
-  Stream<StoreEvent<S, T>> eventsFor<T>(ActionBuilder<T> action) {
+  Stream<StoreEvent<S, T>> eventsFor<T>(ActionName<T> action) {
     assert(action != null);
     return events.where((event) => event.action.name == action.name).cast();
   }
 
   @Deprecated('Use "eventsFor" instead')
-  Stream<StoreEvent<S, T>> eventsWhere<T>(ActionBuilder<T> action) =>
+  Stream<StoreEvent<S, T>> eventsWhere<T>(ActionName<T> action) =>
       eventsFor<T>(action);
 
   /// Stream of all state changes occurred in this store.
