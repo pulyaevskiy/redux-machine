@@ -97,9 +97,9 @@ class Actions {
   static const turnEngineOn = const ActionBuilder<bool>('turnEngineOn');
   static const switchHeadlamps =
       const ActionBuilder<HeadlampsMode>('switchHeadlamps');
-  static const error = const ActionBuilder<void>('error');
-  static const notBound = const ActionBuilder<void>('notBound');
-  static const asyncDo = const AsyncActionBuilder<void>('asyncDo');
+  static const error = const VoidActionBuilder('error');
+  static const notBound = const VoidActionBuilder('notBound');
+  static const asyncDo = const AsyncVoidActionBuilder('asyncDo');
 }
 
 enum HeadlampsMode { off, on, highBeams }

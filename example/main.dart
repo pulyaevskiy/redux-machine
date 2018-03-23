@@ -59,10 +59,10 @@ class Turnstile<T> extends MachineState<T> {
 
 abstract class Actions {
   /// Put coin to unlock turnstile
-  static const putCoin = const ActionBuilder<void>('putCoin');
+  static const putCoin = const VoidActionBuilder('putCoin');
 
   /// Push turnstile to pass through
-  static const push = const ActionBuilder<void>('push');
+  static const push = const VoidActionBuilder('push');
 }
 
 Turnstile putCoinReducer(Turnstile state, Action<void> action) {

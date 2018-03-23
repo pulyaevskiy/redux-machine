@@ -65,7 +65,9 @@ class AsyncAction<T> extends Action<T> {
   bool get isDone => _completer.isCompleted;
 }
 
-/// Builder for actions.
+/// Builder for actions carrying non-empty payload.
+///
+/// For actions without any payload consider using [VoidActionBuilder].
 ///
 /// Builder implements [Function] interface so that each `call` of a builder
 /// returns a fresh [Action] instance. For instance:
@@ -75,6 +77,10 @@ class AsyncAction<T> extends Action<T> {
 ///     final action = updateName('John'); // Action('updateName', 'John');
 ///
 /// See [Action] for more details and better usage example.
+///
+/// See also:
+/// - [AsyncActionBuilder] - for actions that trigger async work.
+/// - [AsyncVoidActionBuilder] - for actions with no payload and trigger async work.
 class ActionBuilder<T> {
   /// The action name for this builder.
   final String name;
@@ -83,17 +89,51 @@ class ActionBuilder<T> {
   const ActionBuilder(this.name);
 
   /// Creates new [Action] with optional [payload].
-  Action<T> call([T payload]) => new Action<T>(name, payload);
+  Action<T> call(T payload) => new Action<T>(name, payload);
 }
 
-/// Builder for [AsyncAction]s.
+/// Builder for actions carrying empty (`void`) payload.
+///
+/// For actions with non-empty payload consider using [ActionBuilder].
+///
+/// See also:
+/// - [AsyncActionBuilder] - for actions that trigger async work.
+/// - [AsyncVoidActionBuilder] - for actions with no payload and trigger async work.
+class VoidActionBuilder extends ActionBuilder<void> {
+  const VoidActionBuilder(String name) : super(name);
+
+  @override
+  Action<void> call([payload]) {
+    // assert(payload != null, 'Non-null payload provided for VoidActionBuilder.');
+    return new Action<void>(name, null);
+  }
+}
+
+/// Builder for [AsyncAction]s carrying non-empty payload.
+///
+/// For async actions without any payload consider using [AsyncVoidActionBuilder].
 @experimental
 class AsyncActionBuilder<T> extends ActionBuilder<T> {
   /// Creates new action builder for an action specified by unique [name].
   const AsyncActionBuilder(String name) : super(name);
 
   /// Creates new [AsyncAction] with optional [payload].
-  AsyncAction<T> call([T payload]) => new AsyncAction<T>(name, payload);
+  @override
+  AsyncAction<T> call(T payload) => new AsyncAction<T>(name, payload);
+}
+
+/// Builder for [AsyncAction]s carrying empty (`void`) payload.
+///
+/// For async actions with non-empty payload consider using [AsyncActionBuilder].
+@experimental
+class AsyncVoidActionBuilder extends AsyncActionBuilder<void> {
+  const AsyncVoidActionBuilder(String name) : super(name);
+
+  AsyncAction<void> call([payload]) {
+    // assert(payload != null,
+    // 'Non-null payload provided for VoidAsyncActionBuilder.');
+    return new AsyncAction<void>(name, null);
+  }
 }
 
 /// Signature for Redux reducer functions.

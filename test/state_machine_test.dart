@@ -96,13 +96,13 @@ class SimpleState<T> extends MachineState<T> {
 }
 
 class Actions {
-  static const putCoin = const ActionBuilder<void>('putCoin');
-  static const push = const ActionBuilder<void>('push');
+  static const putCoin = const VoidActionBuilder('putCoin');
+  static const push = const VoidActionBuilder('push');
   static const chain = const ActionBuilder<String>('chain');
   static const append = const ActionBuilder<String>('append');
-  static const loop = const ActionBuilder<void>('loop');
-  static const chainError = const ActionBuilder<void>('chainError');
-  static const error = const ActionBuilder<void>('error');
+  static const loop = const VoidActionBuilder('loop');
+  static const chainError = const VoidActionBuilder('chainError');
+  static const error = const VoidActionBuilder('error');
   static const dyn = const ActionBuilder<bool>('dyn');
 }
 
