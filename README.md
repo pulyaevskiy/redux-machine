@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/pulyaevskiy/redux-machine.svg?branch=master)](https://travis-ci.org/pulyaevskiy/redux-machine) [![Pub](https://img.shields.io/pub/v/redux_machine.svg)](https://pub.dartlang.org/packages/redux_machine)
+[![Build Status](https://travis-ci.org/pulyaevskiy/redux-machine.svg?branch=master)](https://travis-ci.org/pulyaevskiy/redux-machine) [![Pub](https://img.shields.io/pub/v/redux_machine.svg)](https://pub.dartlang.org/packages/redux_machine) [![Pub latest](https://img.shields.io/badge/pub%40latest-1.0.0--dev-orange.svg)](https://pub.dartlang.org/packages/redux_machine/versions/1.0.0-dev.1.0)
 
 Originally started to provide implementation of a State Machine using
 Redux design pattern, this library now includes its own Redux Store
