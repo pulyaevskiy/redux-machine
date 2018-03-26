@@ -225,7 +225,7 @@ _deleteNote(StoreEvent<AppState, int> event) async {
   AsyncAction<int> action = event.action;
   int noteId = action.payload;
   try {
-    var result = httpClient.send('DELETE', '/notes/$noteId');
+    var result = await httpClient.send('DELETE', '/notes/$noteId');
     // Delete successful, mark the action as done
     action.complete();
   } catch (error) {
