@@ -38,6 +38,17 @@ class Action<T> {
   /// Instead of creating actions directly consider using [ActionBuilder].
   Action(this.name, this.payload);
 
+  Action _next;
+
+  /// Whether this action wants to dispatch another action right after it.
+  bool get hasNext => _next != null;
+
+  /// Schedules [action] to be dispatched right after this action.
+  S next<R, S>(Action<R> action, S state) {
+    _next = action;
+    return state;
+  }
+
   @override
   String toString() => '$runtimeType{$name, $payload}';
 
@@ -228,10 +239,26 @@ class Store<S> {
   /// only if there is active listener on this stream. If there is no active
   /// listener for errors the error is rethrown synchronously.
   void dispatch(Action action) {
-    _dispatch(action);
+    var current = action;
+    if (!_dispatch(current)) return;
+
+    while (current.hasNext) {
+      if (current.name == current._next.name)
+        throw new StateError('Store Action attempts to dispatch an action '
+            'of the same type "${current.name}" which can '
+            'cause an infinite loop and therefore forbidden.');
+      current = current._next;
+      if (!_dispatch(current)) {
+        /// If [_dispatch] call failed with an error which was published to
+        /// the events stream the error will surface at a later iteration of
+        /// the event loop. We must exit our while-loop here or otherwise it will
+        /// run forever.
+        break;
+      }
+    }
   }
 
-  /// Internal dispatch method which returns `false` in case there is an error.
+  /// Internal dispatch method which returns `false` in case of an error.
   bool _dispatch(Action action) {
     assert(!_disposed,
         'Dispatching actions is not allowed in disposed state Store.');

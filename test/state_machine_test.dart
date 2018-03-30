@@ -6,10 +6,10 @@ import 'package:test/test.dart';
 
 void main() {
   group('StateMachine', () {
-    StateMachine<SimpleState> machine;
+    Store<SimpleState> machine;
 
     setUp(() {
-      final builder = new StateMachineBuilder<SimpleState>(
+      final builder = new StoreBuilder<SimpleState>(
           initialState: new SimpleState(isLocked: true));
       builder
         ..bind(Actions.putCoin, putCoinReducer)
@@ -75,22 +75,16 @@ void main() {
   });
 }
 
-class SimpleState<T> extends MachineState<T> {
+class SimpleState {
   final bool isLocked;
   final String data;
 
-  SimpleState({
-    this.isLocked,
-    this.data = '',
-    Action<T> nextAction,
-  }) : super(nextAction);
+  SimpleState({this.isLocked, this.data = ''});
 
-  SimpleState<R> copyWith<R>(
-      {bool isLocked, String data, Action<R> nextAction}) {
-    return new SimpleState<R>(
+  SimpleState copyWith({bool isLocked, String data}) {
+    return new SimpleState(
       isLocked: isLocked ?? this.isLocked,
       data: data ?? this.data,
-      nextAction: nextAction,
     );
   }
 }
@@ -115,10 +109,10 @@ SimpleState pushReducer(SimpleState state, Action<void> action) {
 }
 
 SimpleState chainingReducer(SimpleState state, Action<String> action) {
-  return state.copyWith(
-      isLocked: false,
-      data: action.payload,
-      nextAction: Actions.append('-append'));
+  return action.next(
+    Actions.append('-append'),
+    state.copyWith(isLocked: false, data: action.payload),
+  );
 }
 
 SimpleState appendReducer(SimpleState state, Action<String> action) {
@@ -127,11 +121,11 @@ SimpleState appendReducer(SimpleState state, Action<String> action) {
 }
 
 SimpleState loopReducer(SimpleState state, Action<void> action) {
-  return state.copyWith(nextAction: Actions.loop());
+  return action.next(Actions.loop(), state.copyWith());
 }
 
 SimpleState chainErrorReducer(SimpleState state, Action<void> action) {
-  return state.copyWith(nextAction: Actions.error());
+  return action.next(Actions.error(), state.copyWith());
 }
 
 SimpleState errorReducer(SimpleState state, Action<void> action) {
@@ -140,8 +134,8 @@ SimpleState errorReducer(SimpleState state, Action<void> action) {
 
 SimpleState dynamicReducer(SimpleState state, Action<bool> action) {
   if (action.payload) {
-    return state.copyWith(nextAction: Actions.putCoin());
+    return action.next(Actions.putCoin(), state.copyWith());
   } else {
-    return state.copyWith(nextAction: Actions.chain('dynamicChained'));
+    return action.next(Actions.chain('dynamicChained'), state.copyWith());
   }
 }

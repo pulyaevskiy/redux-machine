@@ -1,3 +1,9 @@
+## 1.0.0-dev.2.0 (Unreleased)
+
+- Added: `Action.next()` as a substitute to existing `MachineState.nextAction`.
+    The regular `Store` class now also supports behavior of `StateMachine`,
+    which makes `StateMachine` obsolete (will be removed before stable release).
+
 ## 1.0.0-dev.1.0
 
 This version is designed to work with Dart 2 and includes many changes to
