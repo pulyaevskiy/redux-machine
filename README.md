@@ -1,23 +1,21 @@
 [![Build Status](https://travis-ci.org/pulyaevskiy/redux-machine.svg?branch=master)](https://travis-ci.org/pulyaevskiy/redux-machine) [![Pub](https://img.shields.io/pub/v/redux_machine.svg)](https://pub.dartlang.org/packages/redux_machine) [![Pub latest](https://img.shields.io/badge/pub%40latest-1.0.0--dev-orange.svg)](https://pub.dartlang.org/packages/redux_machine/versions/1.0.0-dev.1.0)
 
 Originally started to provide implementation of a State Machine using
-Redux design pattern, this library now includes its own Redux Store
-which can be used without the state machine part.
+Redux design pattern, this library now includes a Redux Store
+which can be used as a regular state store or a state machine.
 
-The provided `Store` class implements usual Redux state store and `StateMachine`
-class adds some extra functionality mostly to allow chained actions.
-
-Action dispatch flow of both classes is very simple:
+This library implements simplified action dispatch flow:
 
 1. User dispatches an action
-2. Store executes corresponding reducer function.
-3. Store publishes an event with results (includes oldState and newState).
+2. Store executes corresponding reducer function, synchronously.
+3. Store publishes a `StoreEvent` as a result into `events` stream.
 
 There is no middleware or anything else special. Reducers are pure functions,
 and dispatching an action is always synchronous.
 
-Main consequence of this design is that there is no place for middleware layer.
-There are other mechanisms provided by redux_machine that replace middleware.
+Main consequence of this design is that there is no place for middleware layer,
+however there are other mechanisms provided by redux_machine that cover
+middleware use cases.
 
 ## Usage
 
@@ -29,27 +27,23 @@ We start by defining our state object. Below is an example of a coin-operated
 turnstile ([from Wikipedia][turnstile]):
 
 ```dart
-class Turnstile<T> extends MachineState<T> {
+class Turnstile {
   final bool isLocked;
   final int coinsCollected;
   final int visitorsPassed;
 
-  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed,
-      Action<T> nextAction)
-      : super(nextAction);
+  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed);
 
   /// Convenience method to use in reducers.
-  Turnstile<R> copyWith<R>({
+  Turnstile copyWith({
     bool isLocked,
     int coinsCollected,
     int visitorsPassed,
-    Action<R> nextAction,
   }) {
     return new Turnstile(
       isLocked ?? this.isLocked,
       coinsCollected ?? this.coinsCollected,
       visitorsPassed ?? this.visitorsPassed,
-      nextAction,
     );
   }
 }
@@ -60,14 +54,57 @@ Next, actions:
 ```dart
 abstract class Actions {
   /// Put coin to unlock turnstile
-  static const putCoin = const ActionBuilder<void>('putCoin');
+  static const putCoin = const VoidActionBuilder('putCoin');
 
   /// Push turnstile to pass through
-  static const push = const ActionBuilder<void>('push');
+  static const push = const VoidActionBuilder('push');
 }
 ```
 
-And reducers:
+There are 4 action builder classes provided for most common use cases. Above
+example shows usage of `VoidActionBuilder` which creates `Action`s with no
+(`void`) payload. Here are examples of using all 4 builders:
+
+```dart
+abstract class Actions {
+  /// The same example as above.
+  static const putCoin = const VoidActionBuilder('putCoin');
+
+  /// Regular action builder with [String] payload. Payload is required.
+  static const getUser = const ActionBuilder<String>('getUser');
+
+  /// The same as [VoidActionBuilder] but creates [AsyncAction] with no payload.
+  /// Read more on async actions below in this document.
+  static const clearCache = const AsyncVoidActionBuilder('clearCache');
+
+  /// Similarly creates [AsyncAction] with required payload of type [String].
+  static const deleteUser = const AsyncActionBuilder<String>('deleteUser');
+}
+
+/// Using builders
+Future<void> main() async {
+  final Store<MyState> store = getStore();
+  /// All builders implement [call] method and can be invoked as a regular
+  /// function. [call] method of `void` builders has zero arguments.
+  store.dispatch(Actions.putCoin());
+
+  /// `Async*` builders create [AsyncAction]s which allow dispatching side
+  /// to know when action is complete via [AsyncAction.done] Future.
+  final clearCache = Actions.clearCache();
+  store.dispatch(clearCache);
+  await clearCache.done;
+
+  /// [ActionBuilder] and [AsyncActionBuilder] implement `call` method with
+  /// single argument - payload for created action:
+  store.dispatch(Actions.getUser('user-id'));
+  /// Or:
+  final deleteUser = Actions.deleteUser('user-id');
+  store.dispatch(deleteUser);
+  await deleteUser.done;
+}
+```
+
+Next step, reducers:
 
 ```dart
 Turnstile putCoinReducer(Turnstile state, Action<void> action) {
@@ -91,12 +128,13 @@ Combining everything together:
 ```dart
 void main() {
   // Create our machine and register reducers using provided builder class:
-  final builder = new StateMachineBuilder<Turnstile>(
-    initialState: new Turnstile(true, 0, 0, null));
+  final builder = new StoreBuilder<Turnstile>(
+    initialState: new Turnstile(true, 0, 0),
+  );
   builder
     ..bind(Actions.putCoin, putCoinReducer)
     ..bind(Actions.push, pushReducer);
-  final machine = builder.build();
+  final store = builder.build();
 
   // Try triggering some actions
   machine.dispatch(Actions.push());
@@ -110,7 +148,7 @@ void main() {
 ### Chaining actions with StateMachine
 
 Sometimes it is useful to trigger another action from inside current reducer.
-It is possible via `nextAction` property of `MachineState` base class. This
+It is possible via `Action.next()` method. This
 class must be extended by your state class as shown above in the Turnstile
 example. Scheduling an action is as simple as returning a state object
 with the desired action, e.g.:
@@ -122,17 +160,15 @@ State exampleReducer( State state, Action<void> action) {
 
   // State machine will call reducer for `otherAction` with the state object
   // returned from this reducer.
-  return state.copyWith(
-    exampleField: 'value',
-    nextAction: Actions.otherAction()
-  );
+  return action.next(
+      Actions.otherAction(), state.copyWith(exampleField: 'value'));
 }
 ```
 
 ## Middleware example 1: logging
 
-`StateMachine` and `Store` classes expose `events` stream which
-contains all dispatched actions and their results. So logging middleware
+`Store` class exposes `events` stream which
+contains all dispatched actions and their results. Logging middleware
 becomes a simple stream subscription. Below is simplistic printing to stdout
 of all events:
 
@@ -160,9 +196,9 @@ final Store<MyState> store = getStore();
 // Print all events to stdout:
 store.errors.listen(null, onError: errorHandler, cancelOnError: false);
 
-// Example error handler
 void errorHandler(error, stackTrace) {
-  // Log error somewhere...
+  print(error);
+  print(stackTrace);
 }
 ```
 
@@ -171,13 +207,13 @@ stream.
 
 ## Middleware example 3: making HTTP request
 
-In below example we use `Store.eventsFor` stream returns a stream of events
-produced by the same action type (in this case all "fetchUser" events).
+In below example we use `Store.eventsFor` stream which returns a stream of
+events produced by the same action type (in this case all "fetchUser" events).
 
 ```dart
 final Store<MyState> store = getStore();
 // Note that async is allowed in event listeners.
-store.eventsFor(Actions.fetchUser).listen((Action<String> event) async {
+store.eventsFor(Actions.fetchUser).listen((StoreEvent<MyState, String> event) async {
   try {
     // assuming action payload is the ID of a user to fetch.
     String userId = event.action.payload;

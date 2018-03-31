@@ -3,21 +3,21 @@
 
 import 'dart:async';
 
-/// Redux action for state [Store].
+/// Redux action.
 ///
-/// Actions trigger state transitions and are handled by a corresponding reducer
+/// Actions trigger state transitions and are normally handled by a reducer
 /// function.
 ///
 /// While you can create an action by instantiating it directly it is recommended
-/// to use [ActionBuilder] instead, using following pattern:
+/// to use one of [ActionBuilder] classes instead, using following pattern:
 ///
-///     // Declare a namespace class called `Actions` to group all Actions
+///     // Declare a namespace class called `Actions` to group all actions
 ///     // together.
 ///     abstract class Actions {
 ///       // Declare constant field holding ActionBuilder for each action.
 ///       // Make sure to specify distinct names and type arguments.
-///       static const init = const ActionBuilder<void>('init');
-///       // If an action accepts a payload make sure to specify the payload type
+///       static const init = const VoidActionBuilder('init');
+///       // If an action accepts a payload make sure to specify the payload type:
 ///       static const doWork = const ActionBuilder<Data>('doWork');
 ///     }
 ///
@@ -26,6 +26,11 @@ import 'dart:async';
 ///       store.dispatch(Actions.init()); // no payload
 ///       store.dispatch(Actions.doWork(data)); // with payload
 ///     }
+///
+/// An action can instruct state store to synchronously dispatch another action
+/// right after it using [next] method. This allows Redux store to behave like
+/// a state machine which reacts to state transitions according to logic in
+/// reducer functions.
 class Action<T> {
   /// The name of this action.
   final String name;
@@ -35,7 +40,8 @@ class Action<T> {
 
   /// Creates new action with specified [name] and [payload].
   ///
-  /// Instead of creating actions directly consider using [ActionBuilder].
+  /// Instead of creating actions directly consider using one of [ActionBuilder]
+  /// classes.
   Action(this.name, this.payload);
 
   Action _next;
@@ -61,15 +67,35 @@ class Action<T> {
   }
 }
 
+/// Asynchronous action with a `Future`.
+///
+/// Provides a way for dispatching side (usually UI) to be notified when
+/// asynchronous work associated with this action is done.
+///
+/// Use `Future` provided by [done] field to wait for the result. Note that
+/// this Future contains `void` and does not allow returning a value back
+/// to dispatching code. This is by design as data should normally be
+/// retrieved from updated state object via [Store.changes] or [Store.changesFor]
+/// subscriptions. The Future can be completed with an error.
+///
+/// The side which actually performs async operation can call [complete] and
+/// [completeError] to indicate when the work is done.
 class AsyncAction<T> extends Action<T> {
   AsyncAction(String name, T payload) : super(name, payload);
 
   final Completer<void> _completer = new Completer<void>();
 
+  /// Completes this action.
   void complete() => _completer.complete();
+
+  /// Completes this action with error.
   void completeError(error) => _completer.completeError(error);
 
+  /// Future which indicates when asynchronous work for this action is done.
   Future<void> get done => _completer.future;
+
+  /// Returns `true` if this action has been completed with either success or
+  /// error.
   bool get isDone => _completer.isCompleted;
 }
 
@@ -93,7 +119,7 @@ abstract class ActionName<T> {
 ///
 /// See also:
 /// - [AsyncActionBuilder] - for actions that trigger async work.
-/// - [AsyncVoidActionBuilder] - for actions with no payload and trigger async work.
+/// - [AsyncVoidActionBuilder] - for actions with no payload and async work.
 class ActionBuilder<T> extends ActionName<T> {
   /// Creates new action builder for an action specified by unique [name].
   const ActionBuilder(String name) : super(name);
@@ -326,6 +352,7 @@ class StoreError<S, T> {
 }
 
 /// State object interface required for [StateMachine].
+@deprecated
 abstract class MachineState<T> {
   MachineState(this.nextAction);
 
@@ -334,6 +361,7 @@ abstract class MachineState<T> {
 }
 
 /// Builder for [StateMachine]s.
+@deprecated
 class StateMachineBuilder<S extends MachineState> extends StoreBuilder<S> {
   StateMachineBuilder({S initialState}) : super(initialState: initialState);
 
@@ -426,6 +454,7 @@ class StateMachineBuilder<S extends MachineState> extends StoreBuilder<S> {
 ///       // Dispose the machine when done
 ///       machine.dispose();
 ///     }
+@deprecated
 class StateMachine<S extends MachineState> extends Store<S> {
   StateMachine(S initialState, Map<String, dynamic> reducers)
       : super._(initialState, reducers);

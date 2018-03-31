@@ -8,51 +8,47 @@ import 'package:redux_machine/redux_machine.dart';
 /// https://en.wikipedia.org/wiki/Finite-state_machine#Example:_coin-operated_turnstile
 void main() {
   // Create our machine and register reducers:
-  final builder = new StateMachineBuilder<Turnstile>(
-    initialState: new Turnstile<void>(true, 0, 0, null),
+  final builder = new StoreBuilder<Turnstile>(
+    initialState: new Turnstile(true, 0, 0),
   );
   builder
     ..bind(Actions.putCoin, putCoinReducer)
     ..bind(Actions.push, pushReducer);
-  final machine = builder.build();
+  final store = builder.build();
 
   // Try triggering some actions
-  machine.dispatch(Actions.push());
-  machine.dispatch(Actions.putCoin());
-  machine.dispatch(Actions.push());
-  machine.dispatch(Actions.push());
-  machine.dispatch(Actions.push());
-  machine.dispatch(Actions.push());
-  machine.dispatch(Actions.putCoin());
-  machine.dispatch(Actions.putCoin());
-  machine.dispatch(Actions.push());
-  machine.dispatch(Actions.push());
+  store.dispatch(Actions.push());
+  store.dispatch(Actions.putCoin());
+  store.dispatch(Actions.push());
+  store.dispatch(Actions.push());
+  store.dispatch(Actions.push());
+  store.dispatch(Actions.push());
+  store.dispatch(Actions.putCoin());
+  store.dispatch(Actions.putCoin());
+  store.dispatch(Actions.push());
+  store.dispatch(Actions.push());
   // .. etc.
-  // Make sure to dispose the machine in the end:
-  machine.dispose();
+  // Make sure to dispose the state store in the end:
+  store.dispose();
 }
 
-class Turnstile<T> extends MachineState<T> {
+class Turnstile {
   final bool isLocked;
   final int coinsCollected;
   final int visitorsPassed;
 
-  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed,
-      Action<T> nextAction)
-      : super(nextAction);
+  Turnstile(this.isLocked, this.coinsCollected, this.visitorsPassed);
 
   /// Convenience method to use in reducers.
-  Turnstile<R> copyWith<R>({
+  Turnstile copyWith({
     bool isLocked,
     int coinsCollected,
     int visitorsPassed,
-    Action<R> nextAction,
   }) {
     return new Turnstile(
       isLocked ?? this.isLocked,
       coinsCollected ?? this.coinsCollected,
       visitorsPassed ?? this.visitorsPassed,
-      nextAction,
     );
   }
 }
