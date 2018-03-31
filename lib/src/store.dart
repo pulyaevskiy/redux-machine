@@ -286,6 +286,8 @@ class Store<S> {
 
   /// Internal dispatch method which returns `false` in case of an error.
   bool _dispatch(Action action) {
+    assert(!action.hasNext,
+        'Setting next action is only allowed inside a reducer function.');
     assert(!_disposed,
         'Dispatching actions is not allowed in disposed state Store.');
     final S oldState = _state;

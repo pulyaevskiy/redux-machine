@@ -89,13 +89,13 @@ Future<void> main() async {
   store.dispatch(Actions.putCoin());
 
   /// `Async*` builders create [AsyncAction]s which allow dispatching side
-  /// to know when action is complete via [AsyncAction.done] Future.
+  /// to know when action is completed via [AsyncAction.done] Future.
   final clearCache = Actions.clearCache();
   store.dispatch(clearCache);
   await clearCache.done;
 
   /// [ActionBuilder] and [AsyncActionBuilder] implement `call` method with
-  /// single argument - payload for created action:
+  /// single argument - payload for the created action:
   store.dispatch(Actions.getUser('user-id'));
   /// Or:
   final deleteUser = Actions.deleteUser('user-id');
@@ -127,7 +127,7 @@ Combining everything together:
 
 ```dart
 void main() {
-  // Create our machine and register reducers using provided builder class:
+  // Create Redux store and register reducers using provided builder class:
   final builder = new StoreBuilder<Turnstile>(
     initialState: new Turnstile(true, 0, 0),
   );
@@ -145,25 +145,25 @@ void main() {
 }
 ```
 
-### Chaining actions with StateMachine
+### Chaining actions
 
 Sometimes it is useful to trigger another action from inside current reducer.
-It is possible via `Action.next()` method. This
-class must be extended by your state class as shown above in the Turnstile
-example. Scheduling an action is as simple as returning a state object
-with the desired action, e.g.:
+It is possible via `Action.next()` method:
 
 ```dart
 State exampleReducer( State state, Action<void> action) {
   // do work here
   // ...
-
-  // State machine will call reducer for `otherAction` with the state object
-  // returned from this reducer.
+  final newState = state.copyWith(exampleField: 'value');
+  // State store will dispatch `otherAction` and pass `newState` as an input
+  // state argument.
   return action.next(
       Actions.otherAction(), state.copyWith(exampleField: 'value'));
 }
 ```
+
+Note that `Action.next` does not perform actual dispatch so calling it multiple
+times within a reducer function has no effect.
 
 ## Middleware example 1: logging
 
@@ -230,8 +230,8 @@ store.dispatch(Actions.fetchUser('user-id-here'));
 ## Async actions (experimental)
 
 `AsyncAction` is like regular Redux `Action` except it also carries a `Future`.
-In many cases it can be a simpler alternative to traditional trio of actions
-`doFoo`, `doFooSuccess` and `doFooFailed`.
+In many cases it can be a simpler alternative to traditional trio of
+`doFoo`, `doFooSuccess` and `doFooFailed` actions.
 
 Common use case for async actions is when no explicit UI interaction is
 expected with the user after the action is done. For intance, deleting

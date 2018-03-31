@@ -1,11 +1,11 @@
-## 1.0.0-dev.2.0 (Unreleased)
+## 1.0.0-beta.1
 
 - Added: `Action.next()` as a substitute to existing `MachineState.nextAction`.
     The regular `Store` class now also supports behavior of `StateMachine`,
     which makes `StateMachine` obsolete (will be removed before stable release).
 - Deprecated: `StateMachine` and related classes
     (`MachineState`, `StateMachineBuilder`). Regular `Store` class can now be
-    used as a state machine.
+    used as a state machine. See UPGRADING.md for more details.
 
 ## 1.0.0-dev.1.0
 

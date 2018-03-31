@@ -1,6 +1,6 @@
 name: redux_machine
-description: Redux State Machine and State Store with no middleware.
-version: 1.0.0-dev.1.0
+description: Redux Store implementation which can also be used as a state machine.
+version: 1.0.0-beta.1
 homepage: https://github.com/pulyaevskiy/redux-machine
 author: Anatoly Pulyaevskiy <anatoly.pulyaevskiy@gmail.com>
 
