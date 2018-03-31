@@ -157,8 +157,7 @@ State exampleReducer( State state, Action<void> action) {
   final newState = state.copyWith(exampleField: 'value');
   // State store will dispatch `otherAction` and pass `newState` as an input
   // state argument.
-  return action.next(
-      Actions.otherAction(), state.copyWith(exampleField: 'value'));
+  return action.next(Actions.otherAction(), newState);
 }
 ```
 
