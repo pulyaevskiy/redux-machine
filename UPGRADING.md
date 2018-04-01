@@ -1,4 +1,4 @@
-## Upgrading from `0.1.x` to `1.0.0-beta.1`
+## Upgrading from `0.1.x` to `1.0.x`
 
 In `1.0.0-beta.1` the `Store` class can now be used as a state machine as well,
 therefore `StateMachine` class has been deprecated and will be removed in
@@ -54,3 +54,9 @@ abstract class Actions {
 Subscribe to new `Store.errors` stream to report any unhandled errors.
 If there is no active listener on that stream all errors are rethrown
 synchronously by `Store.dispatch()`.
+
+#### Remaining issues?
+
+Feel free to submit an issue [here][issue_tracker].
+
+[issue_tracker]: https://github.com/pulyaevskiy/redux-machine/issues

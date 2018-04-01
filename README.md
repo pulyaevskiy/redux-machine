@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/pulyaevskiy/redux-machine.svg?branch=master)](https://travis-ci.org/pulyaevskiy/redux-machine) [![Pub](https://img.shields.io/pub/v/redux_machine.svg)](https://pub.dartlang.org/packages/redux_machine) [![Pub latest](https://img.shields.io/badge/pub%40latest-1.0.0--dev-orange.svg)](https://pub.dartlang.org/packages/redux_machine/versions/1.0.0-dev.1.0)
+[![Build Status](https://travis-ci.org/pulyaevskiy/redux-machine.svg?branch=master)](https://travis-ci.org/pulyaevskiy/redux-machine) [![Pub](https://img.shields.io/pub/v/redux_machine.svg)](https://pub.dartlang.org/packages/redux_machine) [![Pub latest](https://img.shields.io/badge/pub%40latest-1.0.0--beta-orange.svg)](https://pub.dartlang.org/packages/redux_machine/versions/1.0.0-beta.1)
 
 Originally started to provide implementation of a State Machine using
 Redux design pattern, this library now includes a Redux Store
@@ -9,13 +9,17 @@ This library implements simplified action dispatch flow:
 1. User dispatches an action
 2. Store executes corresponding reducer function, synchronously.
 3. Store publishes a `StoreEvent` as a result into `events` stream.
+4. Side-effects are handled in stream listeners subscribed to `events` stream.
 
-There is no middleware or anything else special. Reducers are pure functions,
-and dispatching an action is always synchronous.
+Since reducers are pure functions and there is no middleware layer - dispatching
+an action is always side-effect free and always results in an event published
+to `events` stream (unless reducer function resulted in an error).
 
-Main consequence of this design is that there is no place for middleware layer,
-however there are other mechanisms provided by redux_machine that cover
-middleware use cases.
+Any middleware-like logic should be put in `events` stream listeners.
+
+> Upgrading from `0.1.x`? See [UPGRADING.md][upgrading] for instructions.
+
+[upgrading]: https://github.com/pulyaevskiy/redux-machine/blob/master/UPGRADING.md
 
 ## Usage
 
