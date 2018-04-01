@@ -30,7 +30,7 @@ MyState oldMachineReducer(MyState state, Action<void> action) {
   /// Instruct state store to dispatch `doFoo` action and pass `newState`
   /// as an input.
   final newState = state.copyWith(someField: 'value');
-  return action.next(Actions.doFoo(), newState);
+  return action.next(newState, Actions.doFoo());
 }
 ```
 

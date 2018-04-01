@@ -110,8 +110,8 @@ SimpleState pushReducer(SimpleState state, Action<void> action) {
 
 SimpleState chainingReducer(SimpleState state, Action<String> action) {
   return action.next(
-    Actions.append('-append'),
     state.copyWith(isLocked: false, data: action.payload),
+    Actions.append('-append'),
   );
 }
 
@@ -121,11 +121,11 @@ SimpleState appendReducer(SimpleState state, Action<String> action) {
 }
 
 SimpleState loopReducer(SimpleState state, Action<void> action) {
-  return action.next(Actions.loop(), state.copyWith());
+  return action.next(state.copyWith(), Actions.loop());
 }
 
 SimpleState chainErrorReducer(SimpleState state, Action<void> action) {
-  return action.next(Actions.error(), state.copyWith());
+  return action.next(state.copyWith(), Actions.error());
 }
 
 SimpleState errorReducer(SimpleState state, Action<void> action) {
@@ -134,8 +134,8 @@ SimpleState errorReducer(SimpleState state, Action<void> action) {
 
 SimpleState dynamicReducer(SimpleState state, Action<bool> action) {
   if (action.payload) {
-    return action.next(Actions.putCoin(), state.copyWith());
+    return action.next(state.copyWith(), Actions.putCoin());
   } else {
-    return action.next(Actions.chain('dynamicChained'), state.copyWith());
+    return action.next(state.copyWith(), Actions.chain('dynamicChained'));
   }
 }

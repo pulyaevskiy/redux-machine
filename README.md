@@ -151,18 +151,19 @@ Sometimes it is useful to trigger another action from inside current reducer.
 It is possible via `Action.next()` method:
 
 ```dart
-State exampleReducer( State state, Action<void> action) {
+State exampleReducer(State state, Action<void> action) {
   // do work here
   // ...
   final newState = state.copyWith(exampleField: 'value');
   // State store will dispatch `otherAction` and pass `newState` as an input
   // state argument.
-  return action.next(Actions.otherAction(), newState);
+  return action.next(newState, Actions.otherAction());
 }
 ```
 
-Note that `Action.next` does not perform actual dispatch so calling it multiple
-times within a reducer function has no effect.
+> Note that `Action.next` does not perform actual dispatch so calling it multiple
+> times within a reducer function has no chaining effect. Only action passed
+> to the last invocation of `Action.next` will be dispatched by the state store.
 
 ## Middleware example 1: logging
 

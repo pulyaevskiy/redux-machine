@@ -50,7 +50,7 @@ class Action<T> {
   bool get hasNext => _next != null;
 
   /// Schedules [action] to be dispatched right after this action.
-  S next<R, S>(Action<R> action, S state) {
+  S next<S, R>(S state, Action<R> action) {
     _next = action;
     return state;
   }
