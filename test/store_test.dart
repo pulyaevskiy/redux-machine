@@ -90,6 +90,15 @@ void main() {
       var list = await events;
       expect(list, hasLength(1));
     });
+
+    test('dispatch after dispose', () async {
+      store.dispatch(Actions.turnEngineOn(true));
+      store.dispose();
+      expect(store.isDisposed, isTrue);
+      expect(() {
+        store.dispatch(Actions.switchHeadlamps(HeadlampsMode.on));
+      }, throwsA(new isInstanceOf<AssertionError>()));
+    });
   });
 }
 

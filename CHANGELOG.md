@@ -1,3 +1,10 @@
+## 1.0.0-rc.1
+
+- Added: `Store.isDisposed` getter.
+- Breaking: Removed `StateMachine`, `MachineState` and `StateMachineBuilder`
+    classes which were deprecated in `1.0.0-beta.1`. See UPGRADING.md for more
+    details.
+
 ## 1.0.0-beta.1
 
 - Added: `Action.next()` as a substitute to existing `MachineState.nextAction`.

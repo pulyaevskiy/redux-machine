@@ -88,7 +88,7 @@ class AsyncAction<T> extends Action<T> {
   /// Completes this action.
   void complete() => _completer.complete();
 
-  /// Completes this action with error.
+  /// Completes this action with [error].
   void completeError(error) => _completer.completeError(error);
 
   /// Future which indicates when asynchronous work for this action is done.
@@ -195,7 +195,7 @@ class Store<S> {
   /// Creates a new [Store].
   Store._(S initialState, Map<String, dynamic> reducers)
       : _controller = new StreamController.broadcast(),
-        _errors = new StreamController<StoreError<S, dynamic>>.broadcast(),
+        _errors = new StreamController.broadcast(),
         _state = initialState,
         _reducers = reducers;
 
@@ -203,6 +203,13 @@ class Store<S> {
   final StreamController<StoreEvent<S, dynamic>> _controller;
   final StreamController<StoreError<S, dynamic>> _errors;
 
+  /// Indicates whether this state store is disposed.
+  ///
+  /// It is not allowed to dispatch new actions in disposed state store.
+  ///
+  /// See also:
+  /// - [dispose] - marks this state store as disposed.
+  bool get isDisposed => _disposed;
   bool _disposed = false;
 
   /// Current state of this store.
@@ -351,135 +358,4 @@ class StoreError<S, T> {
 
   @override
   String toString() => "$runtimeType{$error, $action, $state}";
-}
-
-/// State object interface required for [StateMachine].
-@deprecated
-abstract class MachineState<T> {
-  MachineState(this.nextAction);
-
-  /// Next action to invoke.
-  final Action<T> nextAction;
-}
-
-/// Builder for [StateMachine]s.
-@deprecated
-class StateMachineBuilder<S extends MachineState> extends StoreBuilder<S> {
-  StateMachineBuilder({S initialState}) : super(initialState: initialState);
-
-  StateMachine<S> build() => new StateMachine<S>(_initialState, _reducers);
-}
-
-/// State machine which uses Redux data flow.
-///
-/// Use [StateMachineBuilder] to create a new [StateMachine].
-///
-/// To operate a StateMachine following three things are required:
-/// - a state object which extends base [MachineState] class.
-/// - action definitions
-/// - reducer functions to handle actions
-///
-/// ## Defining state
-///
-/// [StateMachine] requires state objects to extend special [MachineState] base
-/// class which contains one extra property - [MachineState.nextAction]. A
-/// reducer may use this property to dispatch another Redux action after it's
-/// done.
-///
-/// For simple use cases consider following below example:
-///
-///     /// 1. Declare all fields as `final`.
-///     /// 2. Define helper `copyWith` method to use in reducers
-///     /// 3. Declare compound boolean getters for better semantics
-///     /// 4. Implement `==` and `hashCode`.
-///     class CarState<T> extends MachineState<T> {
-///       final bool isEngineOn;
-///       final double acceleration;
-///       final double speed;
-///       CarState({
-///         this.isEngineOn,
-///         this.acceleration,
-///         this.speed,
-///         Action<T> nextAction,
-///       }): super(nextAction);
-///
-///       bool get isMoving => speed > 0.0;
-///
-///       CarState<R> copyWith<R>({
-///         bool isEngineOn,
-///         double acceleration,
-///         double speed,
-///         Action<R> nextAction,
-///       }) {
-///         return new CarState<R>(
-///           isEngineOn: isEngineOn ?? this.isEngineOn,
-///           acceleration: acceleration ?? this.acceleration,
-///           speed: speed ?? this.speed,
-///           nextAction,
-///         );
-///       }
-///     }
-///
-/// ## Defining actions
-///
-/// Actions must be declared using provided [Action] and [ActionBuilder] classes.
-/// See documentation on [Action] class for a complete example.
-///
-/// ## Defining reducers
-///
-/// StateMachine reducer is any function which follows [Reducer] interface.
-/// For more details see [Reducer] documentation.
-///
-/// ## Running StateMachine
-///
-/// When state, actions and reducers are defined we can create and run a state
-/// machine:
-///
-///     abstract class Actions {
-///       static const engineOn = const ActionBuilder<void>('engineOn');
-///       // more action definitions here.
-///     }
-///
-///     CarState engineOnReducer(CarState state, Action<void> action) {
-///       return state.copyWith(isEngineOn: true);
-///     }
-///
-///     void main() {
-///       final builder = new StateMachineBuilder<CarState>(
-///         initialState: new CarState());
-///       builder.bind(Actions.engineOn, engineOnReducer);
-///
-///       StateMachine<CarState> machine = builder.build();
-
-///       // Dispatch actions
-///       machine.dispatch(Actions.engineOn());
-///       // Dispose the machine when done
-///       machine.dispose();
-///     }
-@deprecated
-class StateMachine<S extends MachineState> extends Store<S> {
-  StateMachine(S initialState, Map<String, dynamic> reducers)
-      : super._(initialState, reducers);
-
-  @override
-  void dispatch(Action action) {
-    var currentAction = action;
-    _dispatch(action);
-    while (true) {
-      if (state.nextAction == null) break;
-      if (currentAction.name == state.nextAction?.name)
-        throw new StateError(
-            'StateMachine action attempts to dispatch an action '
-            'of the same type "${currentAction.name}" which can '
-            'cause an infinite loop and therefore forbidden.');
-      currentAction = state.nextAction;
-      if (!_dispatch(state.nextAction)) {
-        /// If [_dispatch] call failed with an error which was published to
-        /// the events stream the error will surface at a later iteration of
-        /// the event loop. We must exit our while-loop here or otherwise it will
-        /// run forever.
-        break;
-      }
-    }
-  }
 }

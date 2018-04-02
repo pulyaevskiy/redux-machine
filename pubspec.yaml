@@ -1,6 +1,6 @@
 name: redux_machine
 description: Redux Store implementation which can also be used as a state machine.
-version: 1.0.0-beta.1
+version: 1.0.0-rc.1
 homepage: https://github.com/pulyaevskiy/redux-machine
 author: Anatoly Pulyaevskiy <anatoly.pulyaevskiy@gmail.com>
 
