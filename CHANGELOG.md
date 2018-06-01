@@ -1,3 +1,7 @@
+## 1.0.0-rc.2
+
+- Added: `AsyncAction.completeAfter()`. See dartdoc for more details.
+
 ## 1.0.0-rc.1
 
 - Added: `Store.isDisposed` getter.

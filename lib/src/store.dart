@@ -84,12 +84,47 @@ class AsyncAction<T> extends Action<T> {
   AsyncAction(String name, T payload) : super(name, payload);
 
   final Completer<void> _completer = new Completer<void>();
+  bool _chained = false;
 
   /// Completes this action.
-  void complete() => _completer.complete();
+  ///
+  /// This method can not be used after a call to [completeAfter].
+  void complete() {
+    assert(
+        !_chained,
+        'It is not allowed to complete AsyncAction after it has been '
+        'chained with another action using completeAfter().');
+    _completer.complete();
+  }
 
   /// Completes this action with [error].
-  void completeError(error) => _completer.completeError(error);
+  ///
+  /// This method can not be used after a call to [completeAfter].
+  void completeError(dynamic error) {
+    assert(
+        !_chained,
+        'It is not allowed to complete AsyncAction after it has been '
+        'chained with another action using completeAfter().');
+    _completer.completeError(error);
+  }
+
+  /// Completes this action after other [action].
+  ///
+  /// This is mostly useful when chaining actions in reducers when completion
+  /// of current action should occur after the next (chained) action completes.
+  ///
+  ///     MyState someReducer(MyState state, Action<void> action) {
+  ///       // do work here...
+  ///       var newState = state.copyWith(field: value);
+  ///       var otherWork = Actions.otherWork(payload);
+  ///       /// This action will complete after [otherWork] action.
+  ///       (action as AsyncAction<void>).completeAfter(otherWork);
+  ///       return action.next(newState, otherWork);
+  ///     }
+  void completeAfter(AsyncAction action) {
+    _chained = true;
+    action.done.then(_completer.complete).catchError(_completer.completeError);
+  }
 
   /// Future which indicates when asynchronous work for this action is done.
   Future<void> get done => _completer.future;
@@ -175,12 +210,12 @@ class StoreBuilder<S> {
 
   /// Binds [reducer] to specified [action].
   ///
-  /// [action] argument can be one of action builders:
+  /// [action] argument is usually one of action builders:
   ///
   /// - [ActionBuilder] - for regular actions with non-empty payload.
   /// - [VoidActionBuilder] - for regular actions with empty (`void`) payload.
   /// - [AsyncActionBuilder] - for async actions with non-empty payload.
-  /// - [VoidActionBuilder] - for async actions with empty (`void`) payload.
+  /// - [AsyncVoidActionBuilder] - for async actions with empty (`void`) payload.
   void bind<T, A>(covariant ActionName<T> action, Reducer<S, T> reducer) {
     _reducers[action.name] = reducer;
   }

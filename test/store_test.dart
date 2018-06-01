@@ -5,7 +5,35 @@ import 'package:redux_machine/redux_machine.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Store', () {
+  group('$AsyncAction', () {
+    test('completeAfter with success', () {
+      var a = new AsyncAction('a', null);
+      var b = new AsyncAction('b', null);
+      a.completeAfter(b);
+      b.complete();
+      expect(a.done, completes);
+    });
+
+    test('completeAfter with error', () {
+      var a = new AsyncAction('a', null);
+      var b = new AsyncAction('b', null);
+      a.completeAfter(b);
+      b.completeError('error');
+      expect(a.done, throwsA('error'));
+    });
+
+    test('completeAfter prevents complete and completeError', () {
+      var a = new AsyncAction('a', null);
+      var b = new AsyncAction('b', null);
+      a.completeAfter(b);
+
+      expect(() => a.complete(), throwsA(new isInstanceOf<AssertionError>()));
+      expect(() => a.completeError('error'),
+          throwsA(new isInstanceOf<AssertionError>()));
+    });
+  });
+
+  group('$Store', () {
     Store<Car> store;
 
     setUp(() {
