@@ -7,4 +7,3 @@ dart_task:
 - test
 - dartfmt
 - dartanalyzer: --fatal-warnings lib
-- ./tool/dart2_test.sh
