@@ -27,9 +27,9 @@ void main() {
       var b = new AsyncAction('b', null);
       a.completeAfter(b);
 
-      expect(() => a.complete(), throwsA(new isInstanceOf<AssertionError>()));
+      expect(() => a.complete(), throwsA(const TypeMatcher<AssertionError>()));
       expect(() => a.completeError('error'),
-          throwsA(new isInstanceOf<AssertionError>()));
+          throwsA(const TypeMatcher<AssertionError>()));
     });
   });
 
@@ -125,7 +125,7 @@ void main() {
       expect(store.isDisposed, isTrue);
       expect(() {
         store.dispatch(Actions.switchHeadlamps(HeadlampsMode.on));
-      }, throwsA(new isInstanceOf<AssertionError>()));
+      }, throwsA(const TypeMatcher<AssertionError>()));
     });
   });
 }

@@ -1,3 +1,7 @@
+## 1.0.0-rc.3
+
+- Prepare for Dart 2 stable.
+
 ## 1.0.0-rc.2
 
 - Added: `AsyncAction.completeAfter()`. See dartdoc for more details.
